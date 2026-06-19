@@ -6,8 +6,10 @@ from .diagnostics import Diagnostic, Severity
 # Import plugins for their registration side effects.
 from .frontends import st as _st_fe       # noqa: F401
 from .frontends import python as _py_fe   # noqa: F401
+from .frontends import il as _il_fe       # noqa: F401
 from .backends import st as _st_be        # noqa: F401
 from .backends import python as _py_be    # noqa: F401
+from .backends import il as _il_be        # noqa: F401
 
 
 @dataclass
