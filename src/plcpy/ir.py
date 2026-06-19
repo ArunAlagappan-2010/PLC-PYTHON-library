@@ -83,6 +83,20 @@ Stmt = Union[Assign, If, While, For, Case]
 
 
 @dataclass
+class SfcStep:
+    name: str
+    initial: bool = False
+    actions: list["Stmt"] = field(default_factory=list)
+    # each transition is (condition, target step name)
+    transitions: list[tuple["Expr", str]] = field(default_factory=list)
+
+
+@dataclass
+class Sfc:
+    steps: list[SfcStep] = field(default_factory=list)
+
+
+@dataclass
 class VarDecl:
     name: str
     type: DataType
@@ -95,3 +109,6 @@ class Program:
     name: str
     vars: list[VarDecl] = field(default_factory=list)
     body: list[Stmt] = field(default_factory=list)
+    # set by the SFC frontend so the SFC backend can reconstruct the chart;
+    # all other backends ignore it and use the lowered `body`.
+    sfc: Sfc | None = None

@@ -8,10 +8,14 @@ from .frontends import st as _st_fe       # noqa: F401
 from .frontends import python as _py_fe   # noqa: F401
 from .frontends import il as _il_fe       # noqa: F401
 from .frontends import ld as _ld_fe       # noqa: F401
+from .frontends import fbd as _fbd_fe     # noqa: F401
+from .frontends import sfc as _sfc_fe     # noqa: F401
 from .backends import st as _st_be        # noqa: F401
 from .backends import python as _py_be    # noqa: F401
 from .backends import il as _il_be        # noqa: F401
 from .backends import ld as _ld_be        # noqa: F401
+from .backends import fbd as _fbd_be      # noqa: F401
+from .backends import sfc as _sfc_be      # noqa: F401
 
 
 @dataclass
