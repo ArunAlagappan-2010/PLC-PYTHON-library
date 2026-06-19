@@ -57,7 +57,13 @@ class If:
     orelse: list["Stmt"] = field(default_factory=list)
 
 
-Stmt = Union[Assign, If]
+@dataclass
+class While:
+    cond: "Expr"
+    body: list["Stmt"] = field(default_factory=list)
+
+
+Stmt = Union[Assign, If, While]
 
 
 @dataclass

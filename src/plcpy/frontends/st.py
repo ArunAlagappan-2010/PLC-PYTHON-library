@@ -39,6 +39,11 @@ class _ToIR(Transformer):
 
     # statements
     def assign(self, c): return ir.Assign(str(c[0]), c[1])
+
+    def while_stmt(self, c):
+        cond = c[0]
+        body = [s for s in c[1:]]
+        return ir.While(cond, body)
     def elif_clause(self, c): return ("elif", c[0], [s for s in c[1:]])
     def else_clause(self, c): return ("else", [s for s in c])
 

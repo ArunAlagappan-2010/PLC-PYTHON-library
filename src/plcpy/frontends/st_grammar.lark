@@ -7,8 +7,9 @@ var_output: "VAR_OUTPUT" var_decl* "END_VAR"
 var_local: "VAR" var_decl* "END_VAR"
 var_decl: NAME ":" NAME ";"
 
-statement: assign | if_stmt
+statement: assign | if_stmt | while_stmt
 assign: NAME ":=" expr ";"
+while_stmt: "WHILE" expr "DO" statement* "END_WHILE" ";"
 if_stmt: "IF" expr "THEN" statement* elif_clause* else_clause? "END_IF" ";"
 elif_clause: "ELSIF" expr "THEN" statement*
 else_clause: "ELSE" statement*

@@ -62,6 +62,10 @@ class _Conv:
             then = [s for s in (self.stmt(x) for x in node.body) if s]
             orelse = [s for s in (self.stmt(x) for x in node.orelse) if s]
             return ir.If(cond, then, [], orelse)
+        if isinstance(node, ast.While):
+            cond = self.expr(node.test)
+            body = [s for s in (self.stmt(x) for x in node.body) if s]
+            return ir.While(cond, body)
         self.unsupported(node, type(node).__name__)
         return None
 

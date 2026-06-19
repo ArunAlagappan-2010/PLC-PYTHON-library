@@ -38,6 +38,10 @@ def _stmts(stmts: list[ir.Stmt], indent: int) -> list[str]:
                 out.append(f"{pad}ELSE")
                 out.extend(_stmts(s.orelse, indent + 1))
             out.append(f"{pad}END_IF;")
+        elif isinstance(s, ir.While):
+            out.append(f"{pad}WHILE {_expr(s.cond)} DO")
+            out.extend(_stmts(s.body, indent + 1))
+            out.append(f"{pad}END_WHILE;")
         else:
             raise TypeError(f"unhandled stmt {s!r}")
     return out

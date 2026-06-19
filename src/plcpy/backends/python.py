@@ -39,6 +39,9 @@ def _stmts(stmts: list[ir.Stmt], indent: int) -> list[str]:
             if s.orelse:
                 out.append(f"{pad}else:")
                 out.extend(_stmts(s.orelse, indent + 1) or [f"{pad}    pass"])
+        elif isinstance(s, ir.While):
+            out.append(f"{pad}while {_expr(s.cond)}:")
+            out.extend(_stmts(s.body, indent + 1) or [f"{pad}    pass"])
         else:
             raise TypeError(f"unhandled stmt {s!r}")
     return out
