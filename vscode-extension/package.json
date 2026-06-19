@@ -1,0 +1,55 @@
+{
+  "name": "plcpy-vscode",
+  "displayName": "plcpy — PLC ↔ Python",
+  "description": "Convert between Python and IEC 61131-3 PLC languages, with synchronized side-by-side views and an execution-flow visualizer.",
+  "version": "0.1.0",
+  "publisher": "plcpy",
+  "engines": { "vscode": "^1.75.0" },
+  "categories": ["Programming Languages", "Visualization"],
+  "activationEvents": [],
+  "main": "./out/extension.js",
+  "contributes": {
+    "languages": [
+      { "id": "st", "aliases": ["Structured Text"], "extensions": [".st"] },
+      { "id": "il", "aliases": ["Instruction List"], "extensions": [".il"] },
+      { "id": "ld", "aliases": ["Ladder Diagram"], "extensions": [".ld"] },
+      { "id": "fbd", "aliases": ["Function Block Diagram"], "extensions": [".fbd"] },
+      { "id": "sfc", "aliases": ["Sequential Function Chart"], "extensions": [".sfc"] }
+    ],
+    "commands": [
+      {
+        "command": "plcpy.visualize",
+        "title": "plcpy: Visualize (side-by-side + flow diagram)"
+      },
+      {
+        "command": "plcpy.convert",
+        "title": "plcpy: Convert to another language"
+      }
+    ],
+    "configuration": {
+      "title": "plcpy",
+      "properties": {
+        "plcpy.command": {
+          "type": "string",
+          "default": "plcpy",
+          "description": "Command used to invoke the plcpy CLI (must be on PATH, or an absolute path)."
+        },
+        "plcpy.defaultTarget": {
+          "type": "string",
+          "default": "python",
+          "enum": ["python", "st", "il", "ld", "fbd", "sfc", "scl", "l5x"],
+          "description": "Default target language for the side-by-side pane."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./"
+  },
+  "devDependencies": {
+    "@types/node": "^18.0.0",
+    "@types/vscode": "^1.75.0",
+    "typescript": "^5.0.0"
+  }
+}
