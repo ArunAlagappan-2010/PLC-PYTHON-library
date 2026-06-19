@@ -1,0 +1,43 @@
+start: program
+program: "PROGRAM" NAME var_section* statement* "END_PROGRAM"
+
+var_section: var_input | var_output | var_local
+var_input: "VAR_INPUT" var_decl* "END_VAR"
+var_output: "VAR_OUTPUT" var_decl* "END_VAR"
+var_local: "VAR" var_decl* "END_VAR"
+var_decl: NAME ":" NAME ";"
+
+statement: assign | if_stmt
+assign: NAME ":=" expr ";"
+if_stmt: "IF" expr "THEN" statement* elif_clause* else_clause? "END_IF" ";"
+elif_clause: "ELSIF" expr "THEN" statement*
+else_clause: "ELSE" statement*
+
+?expr: or_expr
+?or_expr: or_expr "OR" and_expr  -> binop_or
+       | and_expr
+?and_expr: and_expr "AND" cmp_expr -> binop_and
+        | cmp_expr
+?cmp_expr: cmp_expr CMP add_expr  -> binop_cmp
+        | add_expr
+?add_expr: add_expr ADD term      -> binop_add
+        | term
+?term: term MUL factor            -> binop_mul
+     | factor
+?factor: "NOT" factor             -> unary_not
+       | "-" factor               -> unary_neg
+       | atom
+?atom: NAME                       -> var_ref
+     | NUMBER                     -> number
+     | BOOL_LIT                   -> bool_lit
+     | "(" expr ")"
+
+CMP: "<=" | ">=" | "<>" | "<" | ">" | "="
+ADD: "+" | "-"
+MUL: "*" | "/"
+BOOL_LIT.2: "TRUE" | "FALSE"
+NAME: /[A-Za-z_][A-Za-z0-9_]*/
+NUMBER: /[0-9]+(\.[0-9]+)?/
+
+%import common.WS
+%ignore WS
