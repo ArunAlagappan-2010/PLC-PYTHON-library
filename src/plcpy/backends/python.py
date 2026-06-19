@@ -42,6 +42,24 @@ def _stmts(stmts: list[ir.Stmt], indent: int) -> list[str]:
         elif isinstance(s, ir.While):
             out.append(f"{pad}while {_expr(s.cond)}:")
             out.extend(_stmts(s.body, indent + 1) or [f"{pad}    pass"])
+        elif isinstance(s, ir.For):
+            # PLC FOR is inclusive of `end`; lower to a step-aware while loop
+            # (correct for positive step, the common case).
+            out.append(f"{pad}self.{s.var} = {_expr(s.start)}")
+            out.append(f"{pad}while (self.{s.var} <= {_expr(s.end)}):")
+            inner = _stmts(s.body, indent + 1)
+            out.extend(inner)
+            out.append(f"{pad}    self.{s.var} = (self.{s.var} + {_expr(s.step)})")
+        elif isinstance(s, ir.Case):
+            sel = _expr(s.selector)
+            for k, (labels, body) in enumerate(s.branches):
+                kw = "if" if k == 0 else "elif"
+                cond = " or ".join(f"({sel} == {v})" for v in labels)
+                out.append(f"{pad}{kw} {cond}:")
+                out.extend(_stmts(body, indent + 1) or [f"{pad}    pass"])
+            if s.default:
+                out.append(f"{pad}else:")
+                out.extend(_stmts(s.default, indent + 1) or [f"{pad}    pass"])
         else:
             raise TypeError(f"unhandled stmt {s!r}")
     return out

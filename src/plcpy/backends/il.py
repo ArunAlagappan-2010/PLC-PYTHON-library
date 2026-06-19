@@ -58,6 +58,10 @@ def _emit_stmt(s: ir.Stmt, indent: str) -> list[str]:
         return [f"{indent}(* unsupported in IL: IF statement *)"]
     if isinstance(s, ir.While):
         return [f"{indent}(* unsupported in IL: WHILE statement *)"]
+    if isinstance(s, ir.For):
+        return [f"{indent}(* unsupported in IL: FOR statement *)"]
+    if isinstance(s, ir.Case):
+        return [f"{indent}(* unsupported in IL: CASE statement *)"]
     return [f"{indent}(* unsupported statement *)"]
 
 

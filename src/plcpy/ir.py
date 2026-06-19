@@ -63,7 +63,23 @@ class While:
     body: list["Stmt"] = field(default_factory=list)
 
 
-Stmt = Union[Assign, If, While]
+@dataclass
+class For:
+    var: str
+    start: "Expr"
+    end: "Expr"
+    step: "Expr"
+    body: list["Stmt"] = field(default_factory=list)
+
+
+@dataclass
+class Case:
+    selector: "Expr"
+    branches: list[tuple[list[int], list["Stmt"]]] = field(default_factory=list)
+    default: list["Stmt"] = field(default_factory=list)
+
+
+Stmt = Union[Assign, If, While, For, Case]
 
 
 @dataclass

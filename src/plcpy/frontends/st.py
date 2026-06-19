@@ -44,6 +44,33 @@ class _ToIR(Transformer):
         cond = c[0]
         body = [s for s in c[1:]]
         return ir.While(cond, body)
+
+    def for_by(self, c): return ("by", c[0])
+
+    def for_stmt(self, c):
+        var = str(c[0])
+        start = c[1]
+        end = c[2]
+        step = ir.Literal(1, ir.DataType.INT)
+        rest = list(c[3:])
+        if rest and isinstance(rest[0], tuple) and rest[0][0] == "by":
+            step = rest.pop(0)[1]
+        return ir.For(var, start, end, step, rest)
+
+    def case_labels(self, c): return [int(str(t)) for t in c]
+    def case_branch(self, c): return ("branch", c[0], [s for s in c[1:]])
+    def case_else(self, c): return ("else", [s for s in c])
+
+    def case_stmt(self, c):
+        selector = c[0]
+        branches: list = []
+        default: list = []
+        for item in c[1:]:
+            if isinstance(item, tuple) and item[0] == "branch":
+                branches.append((item[1], item[2]))
+            elif isinstance(item, tuple) and item[0] == "else":
+                default = item[1]
+        return ir.Case(selector, branches, default)
     def elif_clause(self, c): return ("elif", c[0], [s for s in c[1:]])
     def else_clause(self, c): return ("else", [s for s in c])
 

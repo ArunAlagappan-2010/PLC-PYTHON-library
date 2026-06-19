@@ -42,6 +42,22 @@ def _stmts(stmts: list[ir.Stmt], indent: int) -> list[str]:
             out.append(f"{pad}WHILE {_expr(s.cond)} DO")
             out.extend(_stmts(s.body, indent + 1))
             out.append(f"{pad}END_WHILE;")
+        elif isinstance(s, ir.For):
+            by = ""
+            if not (isinstance(s.step, ir.Literal) and s.step.value == 1):
+                by = f" BY {_expr(s.step)}"
+            out.append(f"{pad}FOR {s.var} := {_expr(s.start)} TO {_expr(s.end)}{by} DO")
+            out.extend(_stmts(s.body, indent + 1))
+            out.append(f"{pad}END_FOR;")
+        elif isinstance(s, ir.Case):
+            out.append(f"{pad}CASE {_expr(s.selector)} OF")
+            for labels, body in s.branches:
+                out.append(f"{pad}{','.join(str(v) for v in labels)}:")
+                out.extend(_stmts(body, indent + 1))
+            if s.default:
+                out.append(f"{pad}ELSE")
+                out.extend(_stmts(s.default, indent + 1))
+            out.append(f"{pad}END_CASE;")
         else:
             raise TypeError(f"unhandled stmt {s!r}")
     return out
