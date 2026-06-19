@@ -1,0 +1,21 @@
+PROGRAM Latch
+VAR_INPUT
+ go : BOOL;
+ halt : BOOL;
+END_VAR
+VAR_OUTPUT
+ active : BOOL;
+END_VAR
+INITIAL_STEP Idle
+ ACTION
+  active := FALSE;
+ END_ACTION
+ TRANSITION go TO Running
+END_STEP
+STEP Running
+ ACTION
+  active := TRUE;
+ END_ACTION
+ TRANSITION halt TO Idle
+END_STEP
+END_PROGRAM

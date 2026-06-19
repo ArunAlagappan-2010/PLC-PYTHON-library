@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><title>plcpy</title>
+<style>
+  body { font-family: sans-serif; margin: 0; background: #fafafa; color: #222; }
+  header { background: #263238; color: #fff; padding: 10px 16px; }
+  .cols { display: flex; gap: 12px; padding: 12px; align-items: flex-start;
+           flex-wrap: wrap; }
+  .pane { flex: 1 1 320px; min-width: 280px; }
+  .pane h2 { font-size: 13px; text-transform: uppercase; color: #607d8b;
+              margin: 0 0 6px; }
+  pre { background: #fff; border: 1px solid #cfd8dc; border-radius: 6px;
+         padding: 12px; overflow: auto; font-size: 13px; line-height: 1.4; }
+  .diagram { flex: 1 1 360px; min-width: 320px; background: #fff;
+              border: 1px solid #cfd8dc; border-radius: 6px; padding: 8px; }
+</style></head>
+<body>
+<header><strong>plcpy</strong> — sfc ↔ python &nbsp;|&nbsp; execution-flow visualizer</header>
+<div class="cols">
+  <div class="pane"><h2>sfc (source)</h2>
+    <pre>PROGRAM Latch
+VAR_INPUT
+ go : BOOL;
+ halt : BOOL;
+END_VAR
+VAR_OUTPUT
+ active : BOOL;
+END_VAR
+INITIAL_STEP Idle
+ ACTION
+  active := FALSE;
+ END_ACTION
+ TRANSITION go TO Running
+END_STEP
+STEP Running
+ ACTION
+  active := TRUE;
+ END_ACTION
+ TRANSITION halt TO Idle
+END_STEP
+END_PROGRAM
+</pre></div>
+  <div class="pane"><h2>python (converted)</h2>
+    <pre>class Latch:
+    def __init__(self):
+        self.go = False
+        self.halt = False
+        self.active = False
+        self._step = 0
+
+    def scan(self):
+        if (self._step == 0):
+            self.active = False
+        elif (self._step == 1):
+            self.active = True
+        if (self._step == 0):
+            if self.go:
+                self._step = 1
+        elif (self._step == 1):
+            if self.halt:
+                self._step = 0
+</pre></div>
+  <div class="diagram"><h2 style="color:#607d8b;font-size:13px;text-transform:uppercase;margin:0 0 6px">execution flow</h2><svg viewBox="0 0 520 188" xmlns="http://www.w3.org/2000/svg" font-family="sans-serif" font-size="13">
+<defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L8,3 L0,6 Z" fill="#555"/></marker></defs>
+<path d="M260,49 L260,85" fill="none" stroke="#555" stroke-width="1.5" marker-end="url(#arrow)"/>
+<text x="266" y="67" fill="#333">go</text>
+<path d="M380,104 L430,104 L430,30 L380,30" fill="none" stroke="#555" stroke-width="1.5" marker-end="url(#arrow)"/>
+<text x="434" y="67" fill="#333">halt</text>
+<rect x="140" y="11" width="240" height="38" rx="18" fill="#004d40" stroke="#333"/>
+<text x="260" y="34" text-anchor="middle" fill="#fff">Idle</text>
+<rect x="140" y="85" width="240" height="38" rx="18" fill="#00695c" stroke="#333"/>
+<text x="260" y="108" text-anchor="middle" fill="#fff">Running</text>
+</svg></div>
+</div>
+</body></html>
