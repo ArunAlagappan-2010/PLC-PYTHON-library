@@ -6,7 +6,14 @@ _SCOPE_KW = {ir.VarScope.INPUT: "VAR_INPUT", ir.VarScope.OUTPUT: "VAR_OUTPUT",
              ir.VarScope.LOCAL: "VAR"}
 
 
-def _expr(e: ir.Expr) -> str:
+# operator precedence (higher binds tighter), used to insert only the
+# parentheses needed to preserve expression structure on round-trip
+_PREC = {"or": 1, "and": 2,
+         "=": 3, "<>": 3, "<": 3, "<=": 3, ">": 3, ">=": 3,
+         "+": 4, "-": 4, "*": 5, "/": 5}
+
+
+def _render(e: ir.Expr, threshold: int) -> str:
     if isinstance(e, ir.Literal):
         if e.type is ir.DataType.BOOL:
             return "TRUE" if e.value else "FALSE"
@@ -15,11 +22,17 @@ def _expr(e: ir.Expr) -> str:
         return e.name
     if isinstance(e, ir.UnaryOp):
         op = "NOT " if e.op == "not" else "-"
-        return f"{op}{_expr(e.operand)}"
+        return f"{op}{_render(e.operand, 6)}"
     if isinstance(e, ir.BinOp):
+        p = _PREC[e.op]
         op = {"and": "AND", "or": "OR"}.get(e.op, e.op)
-        return f"{_expr(e.left)} {op} {_expr(e.right)}"
+        s = f"{_render(e.left, p)} {op} {_render(e.right, p + 1)}"
+        return f"({s})" if p < threshold else s
     raise TypeError(f"unhandled expr {e!r}")
+
+
+def _expr(e: ir.Expr) -> str:
+    return _render(e, 0)
 
 
 def _stmts(stmts: list[ir.Stmt], indent: int) -> list[str]:
