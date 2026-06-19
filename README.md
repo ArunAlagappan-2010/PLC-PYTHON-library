@@ -5,10 +5,12 @@ Intermediate Representation (IR). Built as a **Parse → IR → Emit** pipeline 
 a plugin registry, so any source language can be converted to any target
 language without writing N×M converters — just N parsers and M emitters.
 
-> **Status: Phase 1 (walking skeleton).** Structured Text (ST) ↔ Python is fully
-> working, with a scan-cycle runtime simulator and a CLI. The remaining IEC
-> 61131-3 languages (IL, LD, FBD, SFC), vendor export plugins, and the VS Code
-> extension are on the roadmap — see [Roadmap](#roadmap).
+> **Status: all six languages + vendor exports + tooling working.** Python and
+> all five IEC 61131-3 languages (ST, IL, LD, FBD, SFC) convert bidirectionally
+> through a shared IR, with a scan-cycle runtime, an execution-flow visualizer,
+> a CLI, and a VS Code extension. Vendor exports: Siemens SCL and Rockwell L5X.
+> Each language is a working subset (see [Coverage](#coverage)); deepening any
+> of them, plus PLCopen XML import and a live-diagnostics LSP, is future work.
 
 ## Install
 
@@ -45,9 +47,11 @@ print(result.diagnostics) # any unsupported-construct warnings
 
 # Which directions are available:
 print(plcpy.languages())
-# {'python': {'frontend': True, 'backend': True},
-#  'st':     {'frontend': True, 'backend': True}}
+# python/st/il/ld/fbd/sfc: frontend+backend; scl/l5x: backend-only (vendor export)
 ```
+
+Any frontend converts to any backend — e.g. Ladder → Python, SFC → ST,
+ST → Siemens SCL, FBD → Rockwell L5X.
 
 ### Scan-cycle runtime
 
@@ -72,7 +76,25 @@ print([t.outputs for t in trace])   # [{'y': 2}, {'y': 99}]
 ```bash
 plcpy convert --from st     --to python  program.st
 plcpy convert --from python --to st      program.py
+plcpy convert --from ld     --to scl     ladder.ld     # vendor export
+# Side-by-side code + execution-flow diagram as a standalone HTML page:
+plcpy visualize --from sfc --to python chart.sfc -o chart.html
 ```
+
+## Visualizer
+
+`plcpy.visualize.flow_graph(program)` builds a control-flow graph (and uses the
+step/transition chart directly for SFC programs); `render_html(...)` emits a
+self-contained HTML page with source + converted code side by side and an
+inline-SVG execution-flow diagram. See `examples/latch.html` for a generated
+sample, or use the `plcpy visualize` CLI command.
+
+## VS Code extension
+
+`vscode-extension/` contains an extension that drives the `plcpy` CLI to provide
+**plcpy: Visualize** (synchronized side-by-side + flow-diagram webview that
+refreshes on save) and **plcpy: Convert**. Build with `npm install && npm run
+compile`, then press F5. See [`vscode-extension/README.md`](vscode-extension/README.md).
 
 ## Architecture
 
@@ -95,23 +117,33 @@ Source-level problems are reported as `Diagnostic` objects (not exceptions);
 unsupported constructs produce an `unsupported` diagnostic rather than silently
 dropping data.
 
-## Supported ST subset (Phase 1)
+## Coverage
 
-`PROGRAM` blocks; `VAR_INPUT` / `VAR_OUTPUT` / `VAR` of `BOOL`/`INT`/`REAL`;
-`:=` assignment; `IF/ELSIF/ELSE/END_IF`; `WHILE/DO/END_WHILE`; arithmetic
-(`+ - * /`), logical (`AND OR NOT`) and comparison (`= <> < <= > >=`) operators;
-parenthesised expressions; integer/real/boolean literals.
+Common data: `BOOL`/`INT`/`REAL`; `VAR_INPUT`/`VAR_OUTPUT`/`VAR`; arithmetic
+(`+ - * /`), logical (`AND OR NOT`), comparison (`= <> < <= > >=`); literals.
 
-## Roadmap
+| Language | Frontend (→IR) | Backend (IR→) | Notes |
+|---|---|---|---|
+| ST  | ✅ | ✅ | assignment, `IF/ELSIF/ELSE`, `WHILE`, `FOR`, `CASE` |
+| Python | ✅ | ✅ | scan-cycle class with `scan()`; `if`/`while` recognised |
+| IL  | ✅ | ✅ | accumulator ops; control flow is comment-marked |
+| LD  | ✅ | ✅ | contacts/coils as boolean rungs (textual notation) |
+| FBD | ✅ | ✅ | block netlist (`out := FUNC(args)`) |
+| SFC | ✅ | ✅ | steps/transitions; lowers to an executable state machine |
+| SCL (Siemens) | — | ✅ | vendor export |
+| L5X (Rockwell) | — | ✅ | vendor export (XML) |
 
-| Phase | Scope |
-|-------|-------|
-| 1 ✅ | IR + registry + ST↔Python + scan-cycle runtime + CLI |
-| 2 | Instruction List (IL) ↔ Python; widen ST coverage (CASE, FOR) |
-| 3 | Visual languages via PLCopen XML — Ladder Diagram first (graph IR) |
-| 4 | Function Block Diagram (FBD), Sequential Function Chart (SFC) |
-| 5 | Vendor export plugins (CODESYS, TIA Portal SCL, TwinCAT, Rockwell L5X) |
-| 6 | VS Code extension — synchronized side-by-side views + execution-flow visualizer |
+## Roadmap (done / next)
+
+| Phase | Scope | Status |
+|-------|-------|--------|
+| 1 | IR + registry + ST↔Python + scan-cycle runtime + CLI | ✅ |
+| 2 | Instruction List (IL) ↔ Python; widen ST (CASE, FOR) | ✅ |
+| 3 | Ladder Diagram (LD) | ✅ |
+| 4 | Function Block Diagram (FBD), Sequential Function Chart (SFC) | ✅ |
+| 5 | Vendor export plugins (Siemens SCL, Rockwell L5X) | ✅ |
+| 6 | Execution-flow visualizer + VS Code extension | ✅ |
+| next | PLCopen XML import for LD/FBD/SFC; layout-preserving graph IR; more vendors (CODESYS, TwinCAT); live-diagnostics LSP | — |
 
 Design spec: [`docs/superpowers/specs/2026-06-19-plc-python-converter-design.md`](docs/superpowers/specs/2026-06-19-plc-python-converter-design.md).
 
