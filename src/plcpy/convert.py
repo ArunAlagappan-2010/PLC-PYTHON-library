@@ -16,6 +16,8 @@ from .backends import il as _il_be        # noqa: F401
 from .backends import ld as _ld_be        # noqa: F401
 from .backends import fbd as _fbd_be      # noqa: F401
 from .backends import sfc as _sfc_be      # noqa: F401
+from .backends.vendors import scl as _scl_be   # noqa: F401
+from .backends.vendors import l5x as _l5x_be   # noqa: F401
 
 
 @dataclass
