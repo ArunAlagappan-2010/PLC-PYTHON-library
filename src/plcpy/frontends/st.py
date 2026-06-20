@@ -5,11 +5,11 @@ from lark.exceptions import LarkError
 from .. import ir
 from ..registry import ParseResult, register_frontend
 from ..diagnostics import Diagnostic, Severity
+from ._common import TYPES as _TYPES
 
 _GRAMMAR = (Path(__file__).parent / "st_grammar.lark").read_text(encoding="utf-8")
 _PARSER = Lark(_GRAMMAR, parser="lalr")
 
-_TYPES = {"BOOL": ir.DataType.BOOL, "INT": ir.DataType.INT, "REAL": ir.DataType.REAL}
 _SCOPE_RULE = {"var_input": ir.VarScope.INPUT, "var_output": ir.VarScope.OUTPUT,
                "var_local": ir.VarScope.LOCAL}
 

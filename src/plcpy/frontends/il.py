@@ -16,10 +16,7 @@ import re
 from .. import ir
 from ..registry import ParseResult, register_frontend
 from ..diagnostics import Diagnostic, Severity
-
-_TYPES = {"BOOL": ir.DataType.BOOL, "INT": ir.DataType.INT, "REAL": ir.DataType.REAL}
-_SCOPE = {"VAR_INPUT": ir.VarScope.INPUT, "VAR_OUTPUT": ir.VarScope.OUTPUT,
-          "VAR": ir.VarScope.LOCAL}
+from ._common import TYPES as _TYPES, SCOPE as _SCOPE
 _BINOP = {"ADD": "+", "SUB": "-", "MUL": "*", "DIV": "/", "AND": "and", "OR": "or",
           "GT": ">", "GE": ">=", "LT": "<", "LE": "<=", "EQ": "=", "NE": "<>"}
 

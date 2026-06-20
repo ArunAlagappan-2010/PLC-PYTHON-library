@@ -32,5 +32,6 @@ def test_parse_program_structure():
 
 
 def test_unsupported_construct_reports_diagnostic():
-    res = st.parse_st("PROGRAM P\n VAR z : WORD; END_VAR\nEND_PROGRAM\n")
+    # STRING is not modelled by the IR -> unsupported diagnostic
+    res = st.parse_st("PROGRAM P\n VAR z : STRING; END_VAR\nEND_PROGRAM\n")
     assert any(d.severity.name == "UNSUPPORTED" for d in res.diagnostics)
