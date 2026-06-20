@@ -147,6 +147,8 @@ class SfcStep:
     actions: list["Stmt"] = field(default_factory=list)
     # each transition is (condition, target step name)
     transitions: list[tuple["Expr", str]] = field(default_factory=list)
+    # optional diagram layout, e.g. {"x": 100, "y": 40}
+    layout: dict | None = None
 
 
 @dataclass
