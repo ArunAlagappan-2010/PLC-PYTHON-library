@@ -124,7 +124,7 @@ Common data: `BOOL`/`INT`/`REAL`; `VAR_INPUT`/`VAR_OUTPUT`/`VAR`; arithmetic
 
 | Language | Frontend (→IR) | Backend (IR→) | Notes |
 |---|---|---|---|
-| ST  | ✅ | ✅ | assignment, `IF/ELSIF/ELSE`, `WHILE`, `FOR`, `CASE`; IEC scalar-type aliases (DINT/WORD/SINT/LREAL/…) |
+| ST  | ✅ | ✅ | assignment, `IF/ELSIF/ELSE`, `WHILE`, `FOR`, `CASE`; **`TON`/`TOF` timers**, **`ARRAY` + indexing**, `TIME` literals; IEC scalar-type aliases (DINT/WORD/SINT/LREAL/…) |
 | Python | ✅ | ✅ | scan-cycle class with `scan()`; `if`/`while` recognised |
 | IL  | ✅ | ✅ | accumulator ops; control flow is comment-marked |
 | LD  | ✅ | ✅ | contacts/coils as boolean rungs (textual notation) |
@@ -151,7 +151,8 @@ parse errors and unsupported-construct warnings as you type.
 | 5 | Vendor export plugins (Siemens SCL, Rockwell L5X) | ✅ |
 | 6 | Execution-flow visualizer + VS Code extension | ✅ |
 | 7 | PLCopen XML ladder import/export; CODESYS + TwinCAT exports; IEC type aliases; live-diagnostics LSP | ✅ |
-| next | PLCopen XML for FBD/SFC + layout preservation; timers (`TON`/`TOF`) with a scan-time model; function blocks & `STRUCT`/`ARRAY`; IL jumps; SFC parallel branches | — |
+| 8 | `TON`/`TOF` timers (scan-time runtime, FB instances/calls, member access, `TIME` literals); `ARRAY` declaration + indexing | ✅ |
+| next | `STRUCT`/`ENUM` & user function blocks; IL jumps/labels; SFC parallel branches; PLCopen XML for FBD/SFC + diagram-layout preservation | — |
 
 Design spec: [`docs/superpowers/specs/2026-06-19-plc-python-converter-design.md`](docs/superpowers/specs/2026-06-19-plc-python-converter-design.md).
 
