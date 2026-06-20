@@ -4,8 +4,17 @@
   "description": "Convert between Python and IEC 61131-3 PLC languages, with synchronized side-by-side views and an execution-flow visualizer.",
   "version": "0.1.0",
   "publisher": "plcpy",
+  "license": "MIT",
   "engines": { "vscode": "^1.75.0" },
   "categories": ["Programming Languages", "Visualization"],
+  "keywords": ["plc", "iec 61131-3", "structured text", "ladder", "sfc", "python"],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ArunAlagappan-2010/PLC-PYTHON-library.git",
+    "directory": "vscode-extension"
+  },
+  "homepage": "https://github.com/ArunAlagappan-2010/PLC-PYTHON-library#readme",
+  "bugs": { "url": "https://github.com/ArunAlagappan-2010/PLC-PYTHON-library/issues" },
   "activationEvents": [],
   "main": "./out/extension.js",
   "contributes": {

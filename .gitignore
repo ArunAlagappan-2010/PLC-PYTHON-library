@@ -7,3 +7,4 @@ dist/
 vscode-extension/out/
 vscode-extension/node_modules/
 vscode-extension/package-lock.json
+vscode-extension/*.vsix
