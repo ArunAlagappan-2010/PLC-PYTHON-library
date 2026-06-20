@@ -94,13 +94,54 @@ def _stmts(stmts: list[ir.Stmt], indent: int) -> list[str]:
             out.append(f"{pad}{s.instance}({args});")
         elif isinstance(s, ir.IndexAssign):
             out.append(f"{pad}{s.base}[{_expr(s.index)}] := {_expr(s.value)};")
+        elif isinstance(s, ir.MemberAssign):
+            out.append(f"{pad}{_expr(s.target)} := {_expr(s.value)};")
         else:
             raise TypeError(f"unhandled stmt {s!r}")
     return out
 
 
+def _decl_str(v: ir.VarDecl) -> str:
+    if v.struct_type is not None:
+        return f"{v.name} : {v.struct_type};"
+    if v.array_len is not None:
+        hi = v.array_lo + v.array_len - 1
+        return f"{v.name} : ARRAY[{v.array_lo}..{hi}] OF {v.type.value};"
+    return f"{v.name} : {v.type.value};"
+
+
+def _fb_def_lines(fb: ir.FunctionBlockDef) -> list[str]:
+    out = [f"FUNCTION_BLOCK {fb.name}"]
+    for scope in (ir.VarScope.INPUT, ir.VarScope.OUTPUT, ir.VarScope.LOCAL):
+        decls = [v for v in fb.vars if v.scope is scope]
+        if not decls:
+            continue
+        out.append(_SCOPE_KW[scope])
+        for v in decls:
+            out.append(f"    {_decl_str(v)}")
+        out.append("END_VAR")
+    out.extend(_stmts(fb.body, 1))
+    out.append("END_FUNCTION_BLOCK")
+    return out
+
+
 def emit_st(program: ir.Program) -> str:
-    lines = [f"PROGRAM {program.name}"]
+    lines: list[str] = []
+    enums = [t for t in program.types if isinstance(t, ir.EnumDef)]
+    structs = [t for t in program.types if isinstance(t, ir.StructDef)]
+    if enums or structs:
+        lines.append("TYPE")
+        for e in enums:
+            lines.append(f"    {e.name} : ({', '.join(e.members)});")
+        for sd in structs:
+            lines.append(f"    {sd.name} : STRUCT")
+            for fn, ftn in sd.fields:
+                lines.append(f"        {fn} : {ftn};")
+            lines.append("    END_STRUCT;")
+        lines.append("END_TYPE")
+    for fb in program.fb_defs:
+        lines.extend(_fb_def_lines(fb))
+    lines.append(f"PROGRAM {program.name}")
     for scope in (ir.VarScope.INPUT, ir.VarScope.OUTPUT, ir.VarScope.LOCAL):
         decls = [v for v in program.vars if v.scope is scope]
         fbs = [fb for fb in program.fbs] if scope is ir.VarScope.LOCAL else []
@@ -108,11 +149,7 @@ def emit_st(program: ir.Program) -> str:
             continue
         lines.append(_SCOPE_KW[scope])
         for v in decls:
-            if v.array_len is not None:
-                hi = v.array_lo + v.array_len - 1
-                lines.append(f"    {v.name} : ARRAY[{v.array_lo}..{hi}] OF {v.type.value};")
-            else:
-                lines.append(f"    {v.name} : {v.type.value};")
+            lines.append(f"    {_decl_str(v)}")
         for fb in fbs:
             lines.append(f"    {fb.name} : {fb.fb_type};")
         lines.append("END_VAR")

@@ -65,6 +65,13 @@ class _ToIR(Transformer):
     # statements
     def assign(self, c): return ir.Assign(str(c[0]), c[1])
     def index_assign(self, c): return ir.IndexAssign(str(c[0]), c[1], c[2])
+
+    def member_assign(self, c):
+        *path, value = c
+        node: ir.Expr = ir.VarRef(str(path[0]))
+        for field in path[1:]:
+            node = ir.Member(node, str(field))
+        return ir.MemberAssign(node, value)
     def fb_arg(self, c): return (str(c[0]), c[1])
 
     def fb_call(self, c):
@@ -120,6 +127,38 @@ class _ToIR(Transformer):
                 then.append(item)
         return ir.If(cond, then, elifs, orelse)
 
+    # type definitions
+    def enum_def(self, c):
+        name = str(c[0])
+        members = {str(m): i for i, m in enumerate(c[1:])}
+        self.enums[name] = members
+        return ir.EnumDef(name, members)
+
+    def struct_field(self, c): return (str(c[0]), str(c[1]))
+
+    def struct_def(self, c):
+        name = str(c[0])
+        self.structs.add(name)
+        return ir.StructDef(name, [f for f in c[1:]])
+
+    def type_block(self, c): return ("types", [t for t in c])
+
+    def fb_def(self, c):
+        name = str(c[0])
+        self.fb_types.add(name)
+        vars_: list[ir.VarDecl] = []
+        body: list = []
+        for item in c[1:]:
+            if isinstance(item, tuple) and item[0] in _SCOPE_RULE:
+                scope = _SCOPE_RULE[item[0]]
+                for decl in item[1]:
+                    self._add_decl(decl, scope, vars_, [])
+            else:
+                body.append(item)
+        fbdef = ir.FunctionBlockDef(name, vars_, body)
+        self.fb_defs.append(fbdef)
+        return ("fbdef", fbdef)
+
     # declarations
     def scalar_type(self, c): return ("scalar", str(c[0]))
     def array_type(self, c):
@@ -139,17 +178,32 @@ class _ToIR(Transformer):
         spec = c[1]
         if spec[0] == "array":
             _, lo, hi, elem = spec
-            dt = self._resolve_type(elem)
-            return ("array", name, dt, hi - lo + 1, lo)
+            return ("array", name, self._resolve_type(elem), hi - lo + 1, lo)
         type_tok = spec[1]
-        if type_tok in _FB_TYPES:
+        if type_tok in self.fb_types:
             return ("fb", name, type_tok)
+        if type_tok in self.structs:
+            return ("struct", name, type_tok)
         return ("var", name, self._resolve_type(type_tok))
 
     def var_input(self, c): return ("var_input", c)
     def var_output(self, c): return ("var_output", c)
     def var_local(self, c): return ("var_local", c)
     def var_section(self, c): return c[0]
+
+    @staticmethod
+    def _add_decl(decl, scope, vars_, fbs):
+        kind = decl[0]
+        if kind == "fb":
+            fbs.append(ir.FBInstance(decl[1], decl[2]))
+        elif kind == "array":
+            _, vname, dt, length, lo = decl
+            vars_.append(ir.VarDecl(vname, dt, scope, array_len=length, array_lo=lo))
+        elif kind == "struct":
+            _, vname, sname = decl
+            vars_.append(ir.VarDecl(vname, ir.DataType.INT, scope, struct_type=sname))
+        else:
+            vars_.append(ir.VarDecl(decl[1], decl[2], scope))
 
     def program(self, c):
         name = str(c[0])
@@ -160,28 +214,32 @@ class _ToIR(Transformer):
             if isinstance(item, tuple) and item[0] in _SCOPE_RULE:
                 scope = _SCOPE_RULE[item[0]]
                 for decl in item[1]:
-                    if decl[0] == "fb":
-                        fbs.append(ir.FBInstance(decl[1], decl[2]))
-                    elif decl[0] == "array":
-                        _, vname, dt, length, lo = decl
-                        vars_.append(ir.VarDecl(vname, dt, scope,
-                                                array_len=length, array_lo=lo))
-                    else:
-                        vars_.append(ir.VarDecl(decl[1], decl[2], scope))
+                    self._add_decl(decl, scope, vars_, fbs)
             else:
                 body.append(item)
         return ir.Program(name, vars_, body, fbs=fbs)
 
     def statement(self, c): return c[0]
-    def start(self, c): return c[0]
+
+    def start(self, c):
+        prog = c[-1]
+        for item in c[:-1]:
+            if isinstance(item, tuple) and item[0] == "types":
+                prog.types.extend(item[1])
+            elif isinstance(item, tuple) and item[0] == "fbdef":
+                prog.fb_defs.append(item[1])
+        return prog
 
 
 def parse_st(text: str) -> ParseResult:
+    fb_names = set(re.findall(r"FUNCTION_BLOCK\s+(\w+)", text))
+    struct_names = set(re.findall(r"(\w+)\s*:\s*STRUCT\b", text))
     try:
         tree = _PARSER.parse(text)
     except LarkError as e:
         return ParseResult(None, [Diagnostic(str(e), Severity.ERROR, code="ST_PARSE")])
-    t = _ToIR()
+    t = _ToIR(fb_names)
+    t.structs |= struct_names
     program = t.transform(tree)
     return ParseResult(program, t.diagnostics)
 

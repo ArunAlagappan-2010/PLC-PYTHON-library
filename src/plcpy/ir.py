@@ -109,7 +109,14 @@ class IndexAssign:
     value: "Expr"
 
 
-Stmt = Union[Assign, If, While, For, Case, FBCall, IndexAssign]
+@dataclass
+class MemberAssign:
+    """Struct/FB member assignment, e.g. motor.speed := x;"""
+    target: "Member"
+    value: "Expr"
+
+
+Stmt = Union[Assign, If, While, For, Case, FBCall, IndexAssign, MemberAssign]
 
 
 @dataclass
@@ -134,6 +141,25 @@ class Sfc:
 
 
 @dataclass
+class EnumDef:
+    name: str
+    members: dict[str, int] = field(default_factory=dict)
+
+
+@dataclass
+class StructDef:
+    name: str
+    fields: list[tuple[str, str]] = field(default_factory=list)  # (field, type_name)
+
+
+@dataclass
+class FunctionBlockDef:
+    name: str
+    vars: list["VarDecl"] = field(default_factory=list)
+    body: list["Stmt"] = field(default_factory=list)
+
+
+@dataclass
 class VarDecl:
     name: str
     type: DataType
@@ -142,6 +168,8 @@ class VarDecl:
     # for arrays: number of elements and the lower bound (e.g. ARRAY[0..3] -> len 4, lo 0)
     array_len: int | None = None
     array_lo: int = 0
+    # for struct instances: the struct type name
+    struct_type: str | None = None
 
 
 @dataclass
@@ -151,6 +179,10 @@ class Program:
     body: list[Stmt] = field(default_factory=list)
     # function-block instance declarations (timers etc.)
     fbs: list[FBInstance] = field(default_factory=list)
+    # user-defined type definitions (EnumDef | StructDef)
+    types: list = field(default_factory=list)
+    # user-defined function block definitions
+    fb_defs: list[FunctionBlockDef] = field(default_factory=list)
     # set by the SFC frontend so the SFC backend can reconstruct the chart;
     # all other backends ignore it and use the lowered `body`.
     sfc: Sfc | None = None

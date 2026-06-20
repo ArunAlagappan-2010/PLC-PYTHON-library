@@ -29,7 +29,8 @@ def _expr(e: ir.Expr) -> str:
     raise TypeError(f"unhandled expr {e!r}")
 
 
-def _stmts(stmts: list[ir.Stmt], indent: int) -> list[str]:
+def _stmts(stmts: list[ir.Stmt], indent: int,
+           timer_names: frozenset = frozenset()) -> list[str]:
     pad = "    " * indent
     out: list[str] = []
     for s in stmts:
@@ -37,22 +38,22 @@ def _stmts(stmts: list[ir.Stmt], indent: int) -> list[str]:
             out.append(f"{pad}self.{s.target} = {_expr(s.value)}")
         elif isinstance(s, ir.If):
             out.append(f"{pad}if {_expr(s.cond)}:")
-            out.extend(_stmts(s.then, indent + 1) or [f"{pad}    pass"])
+            out.extend(_stmts(s.then, indent + 1, timer_names) or [f"{pad}    pass"])
             for cond, body in s.elifs:
                 out.append(f"{pad}elif {_expr(cond)}:")
-                out.extend(_stmts(body, indent + 1) or [f"{pad}    pass"])
+                out.extend(_stmts(body, indent + 1, timer_names) or [f"{pad}    pass"])
             if s.orelse:
                 out.append(f"{pad}else:")
-                out.extend(_stmts(s.orelse, indent + 1) or [f"{pad}    pass"])
+                out.extend(_stmts(s.orelse, indent + 1, timer_names) or [f"{pad}    pass"])
         elif isinstance(s, ir.While):
             out.append(f"{pad}while {_expr(s.cond)}:")
-            out.extend(_stmts(s.body, indent + 1) or [f"{pad}    pass"])
+            out.extend(_stmts(s.body, indent + 1, timer_names) or [f"{pad}    pass"])
         elif isinstance(s, ir.For):
             # PLC FOR is inclusive of `end`; lower to a step-aware while loop
             # (correct for positive step, the common case).
             out.append(f"{pad}self.{s.var} = {_expr(s.start)}")
             out.append(f"{pad}while (self.{s.var} <= {_expr(s.end)}):")
-            inner = _stmts(s.body, indent + 1)
+            inner = _stmts(s.body, indent + 1, timer_names)
             out.extend(inner)
             out.append(f"{pad}    self.{s.var} = (self.{s.var} + {_expr(s.step)})")
         elif isinstance(s, ir.Case):
@@ -61,31 +62,65 @@ def _stmts(stmts: list[ir.Stmt], indent: int) -> list[str]:
                 kw = "if" if k == 0 else "elif"
                 cond = " or ".join(f"({sel} == {v})" for v in labels)
                 out.append(f"{pad}{kw} {cond}:")
-                out.extend(_stmts(body, indent + 1) or [f"{pad}    pass"])
+                out.extend(_stmts(body, indent + 1, timer_names) or [f"{pad}    pass"])
             if s.default:
                 out.append(f"{pad}else:")
-                out.extend(_stmts(s.default, indent + 1) or [f"{pad}    pass"])
+                out.extend(_stmts(s.default, indent + 1, timer_names) or [f"{pad}    pass"])
         elif isinstance(s, ir.FBCall):
-            # function-block call, e.g. tmr(IN := x, PT := 5000)
-            # timers are called positionally (IN, PT, dt) by the runtime classes
-            in_e = s.args.get("IN")
-            pt_e = s.args.get("PT")
-            in_s = _expr(in_e) if in_e is not None else "False"
-            pt_s = _expr(pt_e) if pt_e is not None else "0"
-            out.append(f"{pad}self.{s.instance}({in_s}, {pt_s}, self._dt_ms)")
+            if s.instance in timer_names:
+                # timers are called positionally (IN, PT, dt) by the runtime classes
+                in_e = s.args.get("IN")
+                pt_e = s.args.get("PT")
+                in_s = _expr(in_e) if in_e is not None else "False"
+                pt_s = _expr(pt_e) if pt_e is not None else "0"
+                out.append(f"{pad}self.{s.instance}({in_s}, {pt_s}, self._dt_ms)")
+            else:
+                kw = ", ".join(f"{k}={_expr(v)}" for k, v in s.args.items())
+                out.append(f"{pad}self.{s.instance}({kw})")
         elif isinstance(s, ir.IndexAssign):
             out.append(f"{pad}self.{s.base}[{_expr(s.index)}] = {_expr(s.value)}")
+        elif isinstance(s, ir.MemberAssign):
+            out.append(f"{pad}{_expr(s.target)} = {_expr(s.value)}")
         else:
             raise TypeError(f"unhandled stmt {s!r}")
     return out
 
 
+_TYPES_BY_NAME = {"BOOL": ir.DataType.BOOL, "INT": ir.DataType.INT,
+                  "REAL": ir.DataType.REAL, "TIME": ir.DataType.TIME}
+_TIMER_TYPES = ("TON", "TOF")
+
+
+def _emit_fb_class(fb: ir.FunctionBlockDef) -> list[str]:
+    lines = [f"class {fb.name}:", "    def __init__(self):"]
+    if fb.vars:
+        for v in fb.vars:
+            lines.append(f"        self.{v.name} = {_DEFAULTS[v.type]}")
+    else:
+        lines.append("        pass")
+    lines.append("    def __call__(self, **kw):")
+    lines.append("        for _k, _v in kw.items(): setattr(self, _k, _v)")
+    lines.extend(_stmts(fb.body, 2) or ["        pass"])
+    lines.append("")
+    return lines
+
+
 def emit_python(program: ir.Program) -> str:
     lines: list[str] = []
-    if program.fbs:
-        types = sorted({fb.fb_type for fb in program.fbs})
-        lines.append(f"from plcpy.runtime import {', '.join(types)}")
+    timer_types = sorted({fb.fb_type for fb in program.fbs if fb.fb_type in _TIMER_TYPES})
+    timer_names = frozenset(fb.name for fb in program.fbs if fb.fb_type in _TIMER_TYPES)
+    has_struct = any(v.struct_type for v in program.vars)
+
+    if has_struct:
+        lines.append("import types as _types")
+    if timer_types:
+        lines.append(f"from plcpy.runtime import {', '.join(timer_types)}")
+    if lines:
         lines.append("")
+
+    for fb in program.fb_defs:
+        lines.extend(_emit_fb_class(fb))
+
     lines.append(f"class {program.name}:")
     lines.append("    def __init__(self):")
     has_init = bool(program.vars) or bool(program.fbs)
@@ -94,7 +129,14 @@ def emit_python(program: ir.Program) -> str:
         for fb in program.fbs:
             lines.append(f"        self.{fb.name} = {fb.fb_type}()")
     for v in program.vars:
-        if v.array_len is not None:
+        if v.struct_type is not None:
+            sd = next(t for t in program.types
+                      if isinstance(t, ir.StructDef) and t.name == v.struct_type)
+            fields = ", ".join(
+                f"{fn}={_DEFAULTS[_TYPES_BY_NAME.get(ftn, ir.DataType.INT)]}"
+                for fn, ftn in sd.fields)
+            lines.append(f"        self.{v.name} = _types.SimpleNamespace({fields})")
+        elif v.array_len is not None:
             # size to lo+len so absolute PLC indices (incl. non-zero lower bounds) work
             size = v.array_lo + v.array_len
             lines.append(f"        self.{v.name} = [{_DEFAULTS[v.type]}] * {size}")
@@ -104,7 +146,7 @@ def emit_python(program: ir.Program) -> str:
         lines.append("        pass")
     lines.append("")
     lines.append("    def scan(self):")
-    body = _stmts(program.body, 2)
+    body = _stmts(program.body, 2, timer_names)
     lines.extend(body or ["        pass"])
     return "\n".join(lines) + "\n"
 

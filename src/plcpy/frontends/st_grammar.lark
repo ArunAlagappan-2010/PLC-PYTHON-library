@@ -1,4 +1,9 @@
-start: program
+start: type_block* fb_def* program
+type_block: "TYPE" type_def+ "END_TYPE"
+type_def: NAME ":" "(" NAME ("," NAME)* ")" ";"            -> enum_def
+        | NAME ":" "STRUCT" struct_field+ "END_STRUCT" ";" -> struct_def
+struct_field: NAME ":" NAME ";"
+fb_def: "FUNCTION_BLOCK" NAME var_section* statement* "END_FUNCTION_BLOCK"
 program: "PROGRAM" NAME var_section* statement* "END_PROGRAM"
 
 var_section: var_input | var_output | var_local
@@ -9,9 +14,10 @@ var_decl: NAME ":" type_spec ";"
 type_spec: NAME                                        -> scalar_type
          | "ARRAY" "[" NUMBER ".." NUMBER "]" "OF" NAME -> array_type
 
-statement: assign | index_assign | if_stmt | while_stmt | for_stmt | case_stmt | fb_call
+statement: assign | index_assign | member_assign | if_stmt | while_stmt | for_stmt | case_stmt | fb_call
 assign: NAME ":=" expr ";"
 index_assign: NAME "[" expr "]" ":=" expr ";"
+member_assign: NAME ("." NAME)+ ":=" expr ";"
 fb_call: NAME "(" fb_arg ("," fb_arg)* ")" ";"
 fb_arg: NAME ":=" expr
 while_stmt: "WHILE" expr "DO" statement* "END_WHILE" ";"
