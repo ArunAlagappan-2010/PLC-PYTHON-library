@@ -23,7 +23,7 @@ def _expr(e: ir.Expr) -> str:
     if isinstance(e, ir.BinOp):
         return f"({_expr(e.left)} {_BINOP[e.op]} {_expr(e.right)})"
     if isinstance(e, ir.Member):
-        return f"self.{e.instance}.{e.member}"
+        return f"{_expr(e.base)}.{e.member}"
     if isinstance(e, ir.Index):
         return f"self.{e.base}[{_expr(e.index)}]"
     raise TypeError(f"unhandled expr {e!r}")

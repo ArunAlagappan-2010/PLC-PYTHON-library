@@ -27,7 +27,7 @@ def test_st_parses_timer_instance_call_and_member():
     out_assign = prog.body[1]
     assert isinstance(out_assign, ir.Assign)
     assert isinstance(out_assign.value, ir.Member)
-    assert out_assign.value.instance == "tmr" and out_assign.value.member == "Q"
+    assert out_assign.value.base == ir.VarRef("tmr") and out_assign.value.member == "Q"
 
 
 def test_time_literal_parsed_to_milliseconds():

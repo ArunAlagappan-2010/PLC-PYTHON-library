@@ -43,8 +43,8 @@ class UnaryOp:
 
 @dataclass
 class Member:
-    """Member access on a function-block instance, e.g. tmr.Q"""
-    instance: str
+    """Member access on an instance/struct, e.g. tmr.Q or motor.cfg.speed"""
+    base: "Expr"
     member: str
 
 

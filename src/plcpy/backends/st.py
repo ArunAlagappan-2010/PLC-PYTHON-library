@@ -35,7 +35,7 @@ def _render(e: ir.Expr, threshold: int) -> str:
     if isinstance(e, ir.VarRef):
         return e.name
     if isinstance(e, ir.Member):
-        return f"{e.instance}.{e.member}"
+        return f"{_render(e.base, 6)}.{e.member}"
     if isinstance(e, ir.Index):
         return f"{e.base}[{_render(e.index, 0)}]"
     if isinstance(e, ir.UnaryOp):

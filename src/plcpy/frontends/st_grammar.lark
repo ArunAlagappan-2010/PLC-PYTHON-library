@@ -40,7 +40,7 @@ case_else: "ELSE" statement*
        | "-" factor               -> unary_neg
        | atom
 ?atom: NAME "[" expr "]"          -> index
-     | NAME "." NAME              -> member
+     | NAME ("." NAME)+           -> member
      | NAME                       -> var_ref
      | TIME_LIT                   -> time_lit
      | NUMBER                     -> number

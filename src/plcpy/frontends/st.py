@@ -26,9 +26,13 @@ _SCOPE_RULE = {"var_input": ir.VarScope.INPUT, "var_output": ir.VarScope.OUTPUT,
 
 
 class _ToIR(Transformer):
-    def __init__(self):
+    def __init__(self, fb_names: set[str] | None = None):
         super().__init__()
         self.diagnostics: list[Diagnostic] = []
+        self.enums: dict[str, dict[str, int]] = {}
+        self.structs: set[str] = set()
+        self.fb_types: set[str] = set(_FB_TYPES) | (fb_names or set())
+        self.fb_defs: list[ir.FunctionBlockDef] = []
 
     # expressions
     def var_ref(self, c): return ir.VarRef(str(c[0]))
@@ -41,7 +45,14 @@ class _ToIR(Transformer):
 
     def bool_lit(self, c): return ir.Literal(str(c[0]) == "TRUE", ir.DataType.BOOL)
     def time_lit(self, c): return ir.Literal(_parse_time(str(c[0])), ir.DataType.TIME)
-    def member(self, c): return ir.Member(str(c[0]), str(c[1]))
+    def member(self, c):
+        base_name = str(c[0])
+        if len(c) == 2 and base_name in self.enums:
+            return ir.Literal(self.enums[base_name][str(c[1])], ir.DataType.INT)
+        node: ir.Expr = ir.VarRef(base_name)
+        for field in c[1:]:
+            node = ir.Member(node, str(field))
+        return node
     def index(self, c): return ir.Index(str(c[0]), c[1])
     def unary_not(self, c): return ir.UnaryOp("not", c[0])
     def unary_neg(self, c): return ir.UnaryOp("-", c[0])
