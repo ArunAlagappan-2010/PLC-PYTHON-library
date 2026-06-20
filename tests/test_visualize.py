@@ -66,6 +66,16 @@ def test_flow_graph_sfc_uses_steps_and_transitions():
     assert ("Running", "Idle") in edge_pairs
 
 
+def test_flow_graph_sfc_parallel_shows_all_transitions():
+    from tests.test_sfc_parallel import SRC as PAR_SRC
+    prog = sfc_fe.parse_sfc(PAR_SRC).program
+    g = visualize.flow_graph(prog)
+    pairs = {(e["src"], e["dst"]) for e in g["edges"]}
+    # divergence (Idle -> TaskA, Idle -> TaskB) and convergence (Joins -> Finish)
+    assert ("Idle", "TaskA") in pairs and ("Idle", "TaskB") in pairs
+    assert ("JoinA", "Finish") in pairs and ("JoinB", "Finish") in pairs
+
+
 def test_render_html_is_well_formed_and_has_both_panes():
     prog = st_fe.parse_st(IF_SRC).program
     target = plcpy.convert(IF_SRC, "st", "python").code

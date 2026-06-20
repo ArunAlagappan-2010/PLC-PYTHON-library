@@ -99,11 +99,21 @@ def _sfc_graph(sfc: ir.Sfc) -> dict:
         kind = "initial_step" if step.initial else "step"
         nodes.append({"id": step.name, "label": step.name, "kind": kind})
     names = {s.name for s in sfc.steps}
-    for step in sfc.steps:
-        for cond, target in step.transitions:
-            if target in names:
-                edges.append({"src": step.name, "dst": target,
-                              "label": _expr(cond)})
+    # prefer the authoritative transition list (covers parallel divergence /
+    # convergence with multiple sources/targets); fall back to per-step tuples
+    if sfc.transitions:
+        for t in sfc.transitions:
+            label = _expr(t.cond)
+            for src in t.sources:
+                for dst in t.targets:
+                    if src in names and dst in names:
+                        edges.append({"src": src, "dst": dst, "label": label})
+    else:
+        for step in sfc.steps:
+            for cond, target in step.transitions:
+                if target in names:
+                    edges.append({"src": step.name, "dst": target,
+                                  "label": _expr(cond)})
     return {"nodes": nodes, "edges": edges}
 
 
