@@ -14,7 +14,11 @@ TYPES = {
     "BYTE": ir.DataType.INT, "WORD": ir.DataType.INT, "DWORD": ir.DataType.INT,
     "LWORD": ir.DataType.INT,
     "REAL": ir.DataType.REAL, "LREAL": ir.DataType.REAL,
+    "TIME": ir.DataType.TIME,
 }
+
+# function-block types recognised as instance declarations (not scalar vars)
+FB_TYPES = {"TON", "TOF"}
 SCOPE = {"VAR_INPUT": ir.VarScope.INPUT, "VAR_OUTPUT": ir.VarScope.OUTPUT,
          "VAR": ir.VarScope.LOCAL}
 

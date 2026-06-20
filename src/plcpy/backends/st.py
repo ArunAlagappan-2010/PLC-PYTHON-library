@@ -13,13 +13,29 @@ _PREC = {"or": 1, "and": 2,
          "+": 4, "-": 4, "*": 5, "/": 5}
 
 
+def _time_str(ms: int) -> str:
+    """Render integer milliseconds as a compact IEC TIME literal (T#...)."""
+    if ms == 0:
+        return "T#0ms"
+    out = []
+    for unit, size in (("h", 3600000), ("m", 60000), ("s", 1000), ("ms", 1)):
+        if ms >= size:
+            out.append(f"{ms // size}{unit}")
+            ms %= size
+    return "T#" + "".join(out)
+
+
 def _render(e: ir.Expr, threshold: int) -> str:
     if isinstance(e, ir.Literal):
         if e.type is ir.DataType.BOOL:
             return "TRUE" if e.value else "FALSE"
+        if e.type is ir.DataType.TIME:
+            return _time_str(int(e.value))
         return str(e.value)
     if isinstance(e, ir.VarRef):
         return e.name
+    if isinstance(e, ir.Member):
+        return f"{e.instance}.{e.member}"
     if isinstance(e, ir.UnaryOp):
         op = "NOT " if e.op == "not" else "-"
         return f"{op}{_render(e.operand, 6)}"
@@ -71,6 +87,9 @@ def _stmts(stmts: list[ir.Stmt], indent: int) -> list[str]:
                 out.append(f"{pad}ELSE")
                 out.extend(_stmts(s.default, indent + 1))
             out.append(f"{pad}END_CASE;")
+        elif isinstance(s, ir.FBCall):
+            args = ", ".join(f"{k} := {_expr(v)}" for k, v in s.args.items())
+            out.append(f"{pad}{s.instance}({args});")
         else:
             raise TypeError(f"unhandled stmt {s!r}")
     return out
@@ -80,11 +99,14 @@ def emit_st(program: ir.Program) -> str:
     lines = [f"PROGRAM {program.name}"]
     for scope in (ir.VarScope.INPUT, ir.VarScope.OUTPUT, ir.VarScope.LOCAL):
         decls = [v for v in program.vars if v.scope is scope]
-        if not decls:
+        fbs = [fb for fb in program.fbs] if scope is ir.VarScope.LOCAL else []
+        if not decls and not fbs:
             continue
         lines.append(_SCOPE_KW[scope])
         for v in decls:
             lines.append(f"    {v.name} : {v.type.value};")
+        for fb in fbs:
+            lines.append(f"    {fb.name} : {fb.fb_type};")
         lines.append("END_VAR")
     lines.extend(_stmts(program.body, 1))
     lines.append("END_PROGRAM")

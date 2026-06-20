@@ -4,8 +4,19 @@ from lark import Lark, Transformer
 from lark.exceptions import LarkError
 from .. import ir
 from ..registry import ParseResult, register_frontend
+import re
 from ..diagnostics import Diagnostic, Severity
-from ._common import TYPES as _TYPES
+from ._common import TYPES as _TYPES, FB_TYPES as _FB_TYPES
+
+_TIME_UNIT = {"ms": 1, "s": 1000, "m": 60000, "h": 3600000}
+
+
+def _parse_time(tok: str) -> int:
+    """Parse an IEC TIME literal like T#1m30s into milliseconds."""
+    total = 0
+    for num, unit in re.findall(r"([0-9]+)(ms|s|m|h)", tok[2:]):
+        total += int(num) * _TIME_UNIT[unit]
+    return total
 
 _GRAMMAR = (Path(__file__).parent / "st_grammar.lark").read_text(encoding="utf-8")
 _PARSER = Lark(_GRAMMAR, parser="lalr")
@@ -29,6 +40,8 @@ class _ToIR(Transformer):
         return ir.Literal(int(t), ir.DataType.INT)
 
     def bool_lit(self, c): return ir.Literal(str(c[0]) == "TRUE", ir.DataType.BOOL)
+    def time_lit(self, c): return ir.Literal(_parse_time(str(c[0])), ir.DataType.TIME)
+    def member(self, c): return ir.Member(str(c[0]), str(c[1]))
     def unary_not(self, c): return ir.UnaryOp("not", c[0])
     def unary_neg(self, c): return ir.UnaryOp("-", c[0])
     def binop_or(self, c): return ir.BinOp("or", c[0], c[1])
@@ -39,6 +52,12 @@ class _ToIR(Transformer):
 
     # statements
     def assign(self, c): return ir.Assign(str(c[0]), c[1])
+    def fb_arg(self, c): return (str(c[0]), c[1])
+
+    def fb_call(self, c):
+        instance = str(c[0])
+        args = {name: expr for name, expr in c[1:]}
+        return ir.FBCall(instance, args)
 
     def while_stmt(self, c):
         cond = c[0]
@@ -92,13 +111,15 @@ class _ToIR(Transformer):
     def var_decl(self, c):
         name = str(c[0])
         type_tok = str(c[1])
+        if type_tok in _FB_TYPES:
+            return ("fb", name, type_tok)
         dt = _TYPES.get(type_tok)
         if dt is None:
             self.diagnostics.append(Diagnostic(
                 f"unsupported type {type_tok!r}", Severity.UNSUPPORTED,
                 line=getattr(c[1], "line", 0), code="ST_TYPE"))
             dt = ir.DataType.INT  # placeholder so structure survives
-        return (name, dt)
+        return ("var", name, dt)
 
     def var_input(self, c): return ("var_input", c)
     def var_output(self, c): return ("var_output", c)
@@ -108,16 +129,19 @@ class _ToIR(Transformer):
     def program(self, c):
         name = str(c[0])
         vars_: list[ir.VarDecl] = []
+        fbs: list[ir.FBInstance] = []
         body: list = []
         for item in c[1:]:
             if isinstance(item, tuple) and item[0] in _SCOPE_RULE:
                 scope = _SCOPE_RULE[item[0]]
                 for decl in item[1]:
-                    vname, dt = decl
-                    vars_.append(ir.VarDecl(vname, dt, scope))
+                    if decl[0] == "fb":
+                        fbs.append(ir.FBInstance(decl[1], decl[2]))
+                    else:
+                        vars_.append(ir.VarDecl(decl[1], decl[2], scope))
             else:
                 body.append(item)
-        return ir.Program(name, vars_, body)
+        return ir.Program(name, vars_, body, fbs=fbs)
 
     def statement(self, c): return c[0]
     def start(self, c): return c[0]

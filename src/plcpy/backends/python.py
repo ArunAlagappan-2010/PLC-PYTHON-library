@@ -2,7 +2,8 @@ from __future__ import annotations
 from .. import ir
 from ..registry import register_backend
 
-_DEFAULTS = {ir.DataType.BOOL: "False", ir.DataType.INT: "0", ir.DataType.REAL: "0.0"}
+_DEFAULTS = {ir.DataType.BOOL: "False", ir.DataType.INT: "0", ir.DataType.REAL: "0.0",
+             ir.DataType.TIME: "0"}
 _BINOP = {"and": "and", "or": "or", "=": "==", "<>": "!=",
           "<": "<", "<=": "<=", ">": ">", ">=": ">=",
           "+": "+", "-": "-", "*": "*", "/": "/"}
@@ -21,6 +22,8 @@ def _expr(e: ir.Expr) -> str:
         return f"(-{_expr(e.operand)})"
     if isinstance(e, ir.BinOp):
         return f"({_expr(e.left)} {_BINOP[e.op]} {_expr(e.right)})"
+    if isinstance(e, ir.Member):
+        return f"self.{e.instance}.{e.member}"
     raise TypeError(f"unhandled expr {e!r}")
 
 
@@ -60,17 +63,35 @@ def _stmts(stmts: list[ir.Stmt], indent: int) -> list[str]:
             if s.default:
                 out.append(f"{pad}else:")
                 out.extend(_stmts(s.default, indent + 1) or [f"{pad}    pass"])
+        elif isinstance(s, ir.FBCall):
+            # function-block call, e.g. tmr(IN := x, PT := 5000)
+            # timers are called positionally (IN, PT, dt) by the runtime classes
+            in_e = s.args.get("IN")
+            pt_e = s.args.get("PT")
+            in_s = _expr(in_e) if in_e is not None else "False"
+            pt_s = _expr(pt_e) if pt_e is not None else "0"
+            out.append(f"{pad}self.{s.instance}({in_s}, {pt_s}, self._dt_ms)")
         else:
             raise TypeError(f"unhandled stmt {s!r}")
     return out
 
 
 def emit_python(program: ir.Program) -> str:
-    lines = [f"class {program.name}:", "    def __init__(self):"]
-    if program.vars:
-        for v in program.vars:
-            lines.append(f"        self.{v.name} = {_DEFAULTS[v.type]}")
-    else:
+    lines: list[str] = []
+    if program.fbs:
+        types = sorted({fb.fb_type for fb in program.fbs})
+        lines.append(f"from plcpy.runtime import {', '.join(types)}")
+        lines.append("")
+    lines.append(f"class {program.name}:")
+    lines.append("    def __init__(self):")
+    has_init = bool(program.vars) or bool(program.fbs)
+    if program.fbs:
+        lines.append("        self._dt_ms = 100")
+        for fb in program.fbs:
+            lines.append(f"        self.{fb.name} = {fb.fb_type}()")
+    for v in program.vars:
+        lines.append(f"        self.{v.name} = {_DEFAULTS[v.type]}")
+    if not has_init:
         lines.append("        pass")
     lines.append("")
     lines.append("    def scan(self):")

@@ -7,8 +7,10 @@ var_output: "VAR_OUTPUT" var_decl* "END_VAR"
 var_local: "VAR" var_decl* "END_VAR"
 var_decl: NAME ":" NAME ";"
 
-statement: assign | if_stmt | while_stmt | for_stmt | case_stmt
+statement: assign | if_stmt | while_stmt | for_stmt | case_stmt | fb_call
 assign: NAME ":=" expr ";"
+fb_call: NAME "(" fb_arg ("," fb_arg)* ")" ";"
+fb_arg: NAME ":=" expr
 while_stmt: "WHILE" expr "DO" statement* "END_WHILE" ";"
 for_stmt: "FOR" NAME ":=" expr "TO" expr for_by? "DO" statement* "END_FOR" ";"
 for_by: "BY" expr
@@ -34,7 +36,9 @@ case_else: "ELSE" statement*
 ?factor: "NOT" factor             -> unary_not
        | "-" factor               -> unary_neg
        | atom
-?atom: NAME                       -> var_ref
+?atom: NAME "." NAME              -> member
+     | NAME                       -> var_ref
+     | TIME_LIT                   -> time_lit
      | NUMBER                     -> number
      | BOOL_LIT                   -> bool_lit
      | "(" expr ")"
@@ -43,6 +47,7 @@ CMP: "<=" | ">=" | "<>" | "<" | ">" | "="
 ADD: "+" | "-"
 MUL: "*" | "/"
 BOOL_LIT.2: "TRUE" | "FALSE"
+TIME_LIT.3: /T#[0-9]+(?:ms|s|m|h)(?:[0-9]+(?:ms|s|m|h))*/
 NAME: /[A-Za-z_][A-Za-z0-9_]*/
 NUMBER: /[0-9]+(\.[0-9]+)?/
 

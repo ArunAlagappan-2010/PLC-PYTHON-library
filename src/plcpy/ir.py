@@ -14,6 +14,7 @@ class DataType(enum.Enum):
     BOOL = "BOOL"
     INT = "INT"
     REAL = "REAL"
+    TIME = "TIME"  # stored as integer milliseconds
 
 
 @dataclass
@@ -40,7 +41,14 @@ class UnaryOp:
     operand: "Expr"
 
 
-Expr = Union[Literal, VarRef, BinOp, UnaryOp]
+@dataclass
+class Member:
+    """Member access on a function-block instance, e.g. tmr.Q"""
+    instance: str
+    member: str
+
+
+Expr = Union[Literal, VarRef, BinOp, UnaryOp, Member]
 
 
 @dataclass
@@ -79,7 +87,21 @@ class Case:
     default: list["Stmt"] = field(default_factory=list)
 
 
-Stmt = Union[Assign, If, While, For, Case]
+@dataclass
+class FBCall:
+    """Invoke a function-block instance, e.g. tmr(IN := x, PT := T#5s);"""
+    instance: str
+    args: dict[str, "Expr"] = field(default_factory=dict)
+
+
+Stmt = Union[Assign, If, While, For, Case, FBCall]
+
+
+@dataclass
+class FBInstance:
+    """A function-block instance variable, e.g. tmr : TON;"""
+    name: str
+    fb_type: str
 
 
 @dataclass
@@ -109,6 +131,8 @@ class Program:
     name: str
     vars: list[VarDecl] = field(default_factory=list)
     body: list[Stmt] = field(default_factory=list)
+    # function-block instance declarations (timers etc.)
+    fbs: list[FBInstance] = field(default_factory=list)
     # set by the SFC frontend so the SFC backend can reconstruct the chart;
     # all other backends ignore it and use the lowered `body`.
     sfc: Sfc | None = None
