@@ -124,13 +124,13 @@ Common data: `BOOL`/`INT`/`REAL`; `VAR_INPUT`/`VAR_OUTPUT`/`VAR`; arithmetic
 
 | Language | Frontend (→IR) | Backend (IR→) | Notes |
 |---|---|---|---|
-| ST  | ✅ | ✅ | assignment, `IF/ELSIF/ELSE`, `WHILE`, `FOR`, `CASE`; **`TON`/`TOF` timers**, **`ARRAY` + indexing**, `TIME` literals; IEC scalar-type aliases (DINT/WORD/SINT/LREAL/…) |
+| ST  | ✅ | ✅ | assignment, `IF/ELSIF/ELSE`, `WHILE`, `FOR`, `CASE`; **`TON`/`TOF` timers**, **`ARRAY` + indexing**, **`STRUCT`/`ENUM`**, **user `FUNCTION_BLOCK`s**, nested `a.b.c`, `TIME` literals; IEC scalar-type aliases (DINT/WORD/SINT/LREAL/…) |
 | Python | ✅ | ✅ | scan-cycle class with `scan()`; `if`/`while` recognised |
-| IL  | ✅ | ✅ | accumulator ops; control flow is comment-marked |
+| IL  | ✅ | ✅ | accumulator ops; **`JMP`/`JMPC`/`JMPCN` + labels** (IF/WHILE lower to jumps and raise back to structured) |
 | LD  | ✅ | ✅ | contacts/coils as boolean rungs (textual notation) |
-| PLCopen XML | ✅ | ✅ | TC6 ladder graph import/export (series/parallel/NC contacts) |
+| PLCopen XML | ✅ | ✅ | TC6 **ladder, FBD & SFC** graph import/export; diagram-layout preservation |
 | FBD | ✅ | ✅ | block netlist (`out := FUNC(args)`) |
-| SFC | ✅ | ✅ | steps/transitions; lowers to an executable state machine |
+| SFC | ✅ | ✅ | steps/transitions, **parallel (simultaneous) branches**; lowers to an executable boolean-set state machine |
 | SCL (Siemens) | — | ✅ | vendor export |
 | L5X (Rockwell) | — | ✅ | vendor export (XML) |
 | CODESYS | — | ✅ | vendor export (`.exp`) |
@@ -152,7 +152,11 @@ parse errors and unsupported-construct warnings as you type.
 | 6 | Execution-flow visualizer + VS Code extension | ✅ |
 | 7 | PLCopen XML ladder import/export; CODESYS + TwinCAT exports; IEC type aliases; live-diagnostics LSP | ✅ |
 | 8 | `TON`/`TOF` timers (scan-time runtime, FB instances/calls, member access, `TIME` literals); `ARRAY` declaration + indexing | ✅ |
-| next | `STRUCT`/`ENUM` & user function blocks; IL jumps/labels; SFC parallel branches; PLCopen XML for FBD/SFC + diagram-layout preservation | — |
+| 9 | `STRUCT`/`ENUM` & user `FUNCTION_BLOCK`s + nested member access; IL jumps/labels; SFC parallel branches; PLCopen XML for FBD/SFC + diagram-layout preservation | ✅ |
+
+Every feature from the original design — all five IEC 61131-3 languages, PLCopen
+XML interchange, vendor exports, the runtime, the visualizer, the VS Code
+extension, and the live LSP — is implemented and tested (97 tests).
 
 Design spec: [`docs/superpowers/specs/2026-06-19-plc-python-converter-design.md`](docs/superpowers/specs/2026-06-19-plc-python-converter-design.md).
 
