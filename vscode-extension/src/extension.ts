@@ -3,6 +3,34 @@ import * as cp from "child_process";
 import * as os from "os";
 import * as path from "path";
 import * as fs from "fs";
+import {
+  LanguageClient,
+  LanguageClientOptions,
+  ServerOptions,
+  TransportKind,
+} from "vscode-languageclient/node";
+
+let client: LanguageClient | undefined;
+
+function startLanguageServer(): void {
+  const exec = {
+    command: cliCommand(),
+    args: ["lsp"],
+    transport: TransportKind.stdio,
+  };
+  const serverOptions: ServerOptions = { run: exec, debug: exec };
+  const clientOptions: LanguageClientOptions = {
+    documentSelector: [
+      { scheme: "file", language: "st" },
+      { scheme: "file", language: "il" },
+      { scheme: "file", language: "ld" },
+      { scheme: "file", language: "fbd" },
+      { scheme: "file", language: "sfc" },
+    ],
+  };
+  client = new LanguageClient("plcpy", "plcpy Language Server", serverOptions, clientOptions);
+  client.start();
+}
 
 const EXT_LANG: Record<string, string> = {
   ".st": "st", ".il": "il", ".ld": "ld",
@@ -136,6 +164,14 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand("plcpy.visualize", () => visualize(context)),
     vscode.commands.registerCommand("plcpy.convert", () => convert())
   );
+  try {
+    startLanguageServer();
+  } catch (e) {
+    // LSP is optional — convert/visualize still work without it
+    console.error("plcpy: failed to start language server", e);
+  }
 }
 
-export function deactivate(): void { /* no-op */ }
+export function deactivate(): Thenable<void> | undefined {
+  return client?.stop();
+}

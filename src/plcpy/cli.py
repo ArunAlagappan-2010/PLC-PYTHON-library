@@ -21,7 +21,13 @@ def main(argv: list[str] | None = None) -> int:
                      help="language for the side-by-side pane (default: python)")
     vis.add_argument("-o", "--out", required=True, help="output .html path")
 
+    sub.add_parser("lsp", help="run the PLC language server over stdio")
+
     args = parser.parse_args(argv)
+
+    if args.cmd == "lsp":
+        from .lsp import main as lsp_main
+        return lsp_main()
 
     if args.cmd == "convert":
         source = open(args.file, encoding="utf-8").read()
