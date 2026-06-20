@@ -150,8 +150,16 @@ class SfcStep:
 
 
 @dataclass
+class SfcTransition:
+    cond: "Expr"
+    sources: list[str] = field(default_factory=list)
+    targets: list[str] = field(default_factory=list)
+
+
+@dataclass
 class Sfc:
     steps: list[SfcStep] = field(default_factory=list)
+    transitions: list[SfcTransition] = field(default_factory=list)
 
 
 @dataclass

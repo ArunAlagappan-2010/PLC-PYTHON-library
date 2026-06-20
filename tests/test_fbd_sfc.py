@@ -111,5 +111,6 @@ def test_sfc_roundtrips_chart():
 
 
 def test_sfc_to_st_is_executable_state_machine():
+    # lowered as a boolean per-step state machine (supports parallel branches)
     st = plcpy.convert(SFC_SRC, "sfc", "st").code
-    assert "CASE _step OF" in st
+    assert "_active_Idle" in st and "_active_Running" in st

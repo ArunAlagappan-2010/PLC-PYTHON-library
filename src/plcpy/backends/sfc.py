@@ -20,11 +20,14 @@ def emit_sfc(program: ir.Program) -> str:
                 f"(* no SFC chart available for this program *)\n"
                 f"END_PROGRAM\n")
 
+    def _synthetic(n):
+        return n == "_started" or n.startswith("_active_")
+
     lines = [f"PROGRAM {program.name}"]
     for scope in (ir.VarScope.INPUT, ir.VarScope.OUTPUT, ir.VarScope.LOCAL):
-        # hide the synthetic _step state variable
+        # hide the synthetic state variables
         decls = [v for v in program.vars
-                 if v.scope is scope and v.name != "_step"]
+                 if v.scope is scope and not _synthetic(v.name)]
         if not decls:
             continue
         lines.append(_SCOPE_KW[scope])
@@ -39,8 +42,16 @@ def emit_sfc(program: ir.Program) -> str:
             lines.append("    ACTION")
             lines.extend(_stmts(step.actions, 2))
             lines.append("    END_ACTION")
-        for cond, target in step.transitions:
-            lines.append(f"    TRANSITION {_expr(cond)} TO {target}")
+        for t in program.sfc.transitions:
+            owner = t.sources[-1] if t.sources else None
+            if owner != step.name:
+                continue
+            tos = ", ".join(t.targets)
+            if len(t.sources) > 1:
+                froms = ", ".join(t.sources)
+                lines.append(f"    TRANSITION {_expr(t.cond)} FROM {froms} TO {tos}")
+            else:
+                lines.append(f"    TRANSITION {_expr(t.cond)} TO {tos}")
         lines.append("END_STEP")
 
     lines.append("END_PROGRAM")
