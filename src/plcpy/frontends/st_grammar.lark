@@ -5,10 +5,13 @@ var_section: var_input | var_output | var_local
 var_input: "VAR_INPUT" var_decl* "END_VAR"
 var_output: "VAR_OUTPUT" var_decl* "END_VAR"
 var_local: "VAR" var_decl* "END_VAR"
-var_decl: NAME ":" NAME ";"
+var_decl: NAME ":" type_spec ";"
+type_spec: NAME                                        -> scalar_type
+         | "ARRAY" "[" NUMBER ".." NUMBER "]" "OF" NAME -> array_type
 
-statement: assign | if_stmt | while_stmt | for_stmt | case_stmt | fb_call
+statement: assign | index_assign | if_stmt | while_stmt | for_stmt | case_stmt | fb_call
 assign: NAME ":=" expr ";"
+index_assign: NAME "[" expr "]" ":=" expr ";"
 fb_call: NAME "(" fb_arg ("," fb_arg)* ")" ";"
 fb_arg: NAME ":=" expr
 while_stmt: "WHILE" expr "DO" statement* "END_WHILE" ";"
@@ -36,7 +39,8 @@ case_else: "ELSE" statement*
 ?factor: "NOT" factor             -> unary_not
        | "-" factor               -> unary_neg
        | atom
-?atom: NAME "." NAME              -> member
+?atom: NAME "[" expr "]"          -> index
+     | NAME "." NAME              -> member
      | NAME                       -> var_ref
      | TIME_LIT                   -> time_lit
      | NUMBER                     -> number

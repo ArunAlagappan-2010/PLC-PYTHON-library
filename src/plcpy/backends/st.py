@@ -36,6 +36,8 @@ def _render(e: ir.Expr, threshold: int) -> str:
         return e.name
     if isinstance(e, ir.Member):
         return f"{e.instance}.{e.member}"
+    if isinstance(e, ir.Index):
+        return f"{e.base}[{_render(e.index, 0)}]"
     if isinstance(e, ir.UnaryOp):
         op = "NOT " if e.op == "not" else "-"
         return f"{op}{_render(e.operand, 6)}"
@@ -90,6 +92,8 @@ def _stmts(stmts: list[ir.Stmt], indent: int) -> list[str]:
         elif isinstance(s, ir.FBCall):
             args = ", ".join(f"{k} := {_expr(v)}" for k, v in s.args.items())
             out.append(f"{pad}{s.instance}({args});")
+        elif isinstance(s, ir.IndexAssign):
+            out.append(f"{pad}{s.base}[{_expr(s.index)}] := {_expr(s.value)};")
         else:
             raise TypeError(f"unhandled stmt {s!r}")
     return out
@@ -104,7 +108,11 @@ def emit_st(program: ir.Program) -> str:
             continue
         lines.append(_SCOPE_KW[scope])
         for v in decls:
-            lines.append(f"    {v.name} : {v.type.value};")
+            if v.array_len is not None:
+                hi = v.array_lo + v.array_len - 1
+                lines.append(f"    {v.name} : ARRAY[{v.array_lo}..{hi}] OF {v.type.value};")
+            else:
+                lines.append(f"    {v.name} : {v.type.value};")
         for fb in fbs:
             lines.append(f"    {fb.name} : {fb.fb_type};")
         lines.append("END_VAR")

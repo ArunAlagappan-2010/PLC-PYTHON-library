@@ -29,6 +29,8 @@ def _fbd(e: ir.Expr) -> str:
         return f"{_FUNC[e.op]}({_fbd(e.left)}, {_fbd(e.right)})"
     if isinstance(e, ir.Member):
         return f"{e.instance}.{e.member}"
+    if isinstance(e, ir.Index):
+        return f"{e.base}[{_fbd(e.index)}]"
     raise TypeError(f"unhandled expr {e!r}")
 
 

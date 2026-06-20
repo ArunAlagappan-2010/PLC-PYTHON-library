@@ -42,6 +42,7 @@ class _ToIR(Transformer):
     def bool_lit(self, c): return ir.Literal(str(c[0]) == "TRUE", ir.DataType.BOOL)
     def time_lit(self, c): return ir.Literal(_parse_time(str(c[0])), ir.DataType.TIME)
     def member(self, c): return ir.Member(str(c[0]), str(c[1]))
+    def index(self, c): return ir.Index(str(c[0]), c[1])
     def unary_not(self, c): return ir.UnaryOp("not", c[0])
     def unary_neg(self, c): return ir.UnaryOp("-", c[0])
     def binop_or(self, c): return ir.BinOp("or", c[0], c[1])
@@ -52,6 +53,7 @@ class _ToIR(Transformer):
 
     # statements
     def assign(self, c): return ir.Assign(str(c[0]), c[1])
+    def index_assign(self, c): return ir.IndexAssign(str(c[0]), c[1], c[2])
     def fb_arg(self, c): return (str(c[0]), c[1])
 
     def fb_call(self, c):
@@ -108,18 +110,30 @@ class _ToIR(Transformer):
         return ir.If(cond, then, elifs, orelse)
 
     # declarations
-    def var_decl(self, c):
-        name = str(c[0])
-        type_tok = str(c[1])
-        if type_tok in _FB_TYPES:
-            return ("fb", name, type_tok)
-        dt = _TYPES.get(type_tok)
+    def scalar_type(self, c): return ("scalar", str(c[0]))
+    def array_type(self, c):
+        lo, hi, elem = int(str(c[0])), int(str(c[1])), str(c[2])
+        return ("array", lo, hi, elem)
+
+    def _resolve_type(self, elem: str):
+        dt = _TYPES.get(elem)
         if dt is None:
             self.diagnostics.append(Diagnostic(
-                f"unsupported type {type_tok!r}", Severity.UNSUPPORTED,
-                line=getattr(c[1], "line", 0), code="ST_TYPE"))
-            dt = ir.DataType.INT  # placeholder so structure survives
-        return ("var", name, dt)
+                f"unsupported type {elem!r}", Severity.UNSUPPORTED, code="ST_TYPE"))
+            dt = ir.DataType.INT
+        return dt
+
+    def var_decl(self, c):
+        name = str(c[0])
+        spec = c[1]
+        if spec[0] == "array":
+            _, lo, hi, elem = spec
+            dt = self._resolve_type(elem)
+            return ("array", name, dt, hi - lo + 1, lo)
+        type_tok = spec[1]
+        if type_tok in _FB_TYPES:
+            return ("fb", name, type_tok)
+        return ("var", name, self._resolve_type(type_tok))
 
     def var_input(self, c): return ("var_input", c)
     def var_output(self, c): return ("var_output", c)
@@ -137,6 +151,10 @@ class _ToIR(Transformer):
                 for decl in item[1]:
                     if decl[0] == "fb":
                         fbs.append(ir.FBInstance(decl[1], decl[2]))
+                    elif decl[0] == "array":
+                        _, vname, dt, length, lo = decl
+                        vars_.append(ir.VarDecl(vname, dt, scope,
+                                                array_len=length, array_lo=lo))
                     else:
                         vars_.append(ir.VarDecl(decl[1], decl[2], scope))
             else:

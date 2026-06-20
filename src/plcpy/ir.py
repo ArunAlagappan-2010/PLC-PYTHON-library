@@ -48,7 +48,14 @@ class Member:
     member: str
 
 
-Expr = Union[Literal, VarRef, BinOp, UnaryOp, Member]
+@dataclass
+class Index:
+    """Array element read, e.g. buf[i]"""
+    base: str
+    index: "Expr"
+
+
+Expr = Union[Literal, VarRef, BinOp, UnaryOp, Member, Index]
 
 
 @dataclass
@@ -94,7 +101,15 @@ class FBCall:
     args: dict[str, "Expr"] = field(default_factory=dict)
 
 
-Stmt = Union[Assign, If, While, For, Case, FBCall]
+@dataclass
+class IndexAssign:
+    """Array element assignment, e.g. buf[i] := x;"""
+    base: str
+    index: "Expr"
+    value: "Expr"
+
+
+Stmt = Union[Assign, If, While, For, Case, FBCall, IndexAssign]
 
 
 @dataclass
@@ -124,6 +139,9 @@ class VarDecl:
     type: DataType
     scope: VarScope
     initial: object | None = None
+    # for arrays: number of elements and the lower bound (e.g. ARRAY[0..3] -> len 4, lo 0)
+    array_len: int | None = None
+    array_lo: int = 0
 
 
 @dataclass

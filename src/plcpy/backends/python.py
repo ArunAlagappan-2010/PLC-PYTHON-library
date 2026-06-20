@@ -24,6 +24,8 @@ def _expr(e: ir.Expr) -> str:
         return f"({_expr(e.left)} {_BINOP[e.op]} {_expr(e.right)})"
     if isinstance(e, ir.Member):
         return f"self.{e.instance}.{e.member}"
+    if isinstance(e, ir.Index):
+        return f"self.{e.base}[{_expr(e.index)}]"
     raise TypeError(f"unhandled expr {e!r}")
 
 
@@ -71,6 +73,8 @@ def _stmts(stmts: list[ir.Stmt], indent: int) -> list[str]:
             in_s = _expr(in_e) if in_e is not None else "False"
             pt_s = _expr(pt_e) if pt_e is not None else "0"
             out.append(f"{pad}self.{s.instance}({in_s}, {pt_s}, self._dt_ms)")
+        elif isinstance(s, ir.IndexAssign):
+            out.append(f"{pad}self.{s.base}[{_expr(s.index)}] = {_expr(s.value)}")
         else:
             raise TypeError(f"unhandled stmt {s!r}")
     return out
@@ -90,7 +94,12 @@ def emit_python(program: ir.Program) -> str:
         for fb in program.fbs:
             lines.append(f"        self.{fb.name} = {fb.fb_type}()")
     for v in program.vars:
-        lines.append(f"        self.{v.name} = {_DEFAULTS[v.type]}")
+        if v.array_len is not None:
+            # size to lo+len so absolute PLC indices (incl. non-zero lower bounds) work
+            size = v.array_lo + v.array_len
+            lines.append(f"        self.{v.name} = [{_DEFAULTS[v.type]}] * {size}")
+        else:
+            lines.append(f"        self.{v.name} = {_DEFAULTS[v.type]}")
     if not has_init:
         lines.append("        pass")
     lines.append("")
