@@ -124,14 +124,21 @@ Common data: `BOOL`/`INT`/`REAL`; `VAR_INPUT`/`VAR_OUTPUT`/`VAR`; arithmetic
 
 | Language | Frontend (→IR) | Backend (IR→) | Notes |
 |---|---|---|---|
-| ST  | ✅ | ✅ | assignment, `IF/ELSIF/ELSE`, `WHILE`, `FOR`, `CASE` |
+| ST  | ✅ | ✅ | assignment, `IF/ELSIF/ELSE`, `WHILE`, `FOR`, `CASE`; IEC scalar-type aliases (DINT/WORD/SINT/LREAL/…) |
 | Python | ✅ | ✅ | scan-cycle class with `scan()`; `if`/`while` recognised |
 | IL  | ✅ | ✅ | accumulator ops; control flow is comment-marked |
 | LD  | ✅ | ✅ | contacts/coils as boolean rungs (textual notation) |
+| PLCopen XML | ✅ | ✅ | TC6 ladder graph import/export (series/parallel/NC contacts) |
 | FBD | ✅ | ✅ | block netlist (`out := FUNC(args)`) |
 | SFC | ✅ | ✅ | steps/transitions; lowers to an executable state machine |
 | SCL (Siemens) | — | ✅ | vendor export |
 | L5X (Rockwell) | — | ✅ | vendor export (XML) |
+| CODESYS | — | ✅ | vendor export (`.exp`) |
+| TwinCAT (Beckhoff) | — | ✅ | vendor export (`.TcPOU` XML) |
+
+**Live diagnostics:** `plcpy lsp` runs a dependency-free Language Server over
+stdio; the VS Code extension starts it automatically for PLC files, surfacing
+parse errors and unsupported-construct warnings as you type.
 
 ## Roadmap (done / next)
 
@@ -143,7 +150,8 @@ Common data: `BOOL`/`INT`/`REAL`; `VAR_INPUT`/`VAR_OUTPUT`/`VAR`; arithmetic
 | 4 | Function Block Diagram (FBD), Sequential Function Chart (SFC) | ✅ |
 | 5 | Vendor export plugins (Siemens SCL, Rockwell L5X) | ✅ |
 | 6 | Execution-flow visualizer + VS Code extension | ✅ |
-| next | PLCopen XML import for LD/FBD/SFC; layout-preserving graph IR; more vendors (CODESYS, TwinCAT); live-diagnostics LSP | — |
+| 7 | PLCopen XML ladder import/export; CODESYS + TwinCAT exports; IEC type aliases; live-diagnostics LSP | ✅ |
+| next | PLCopen XML for FBD/SFC + layout preservation; timers (`TON`/`TOF`) with a scan-time model; function blocks & `STRUCT`/`ARRAY`; IL jumps; SFC parallel branches | — |
 
 Design spec: [`docs/superpowers/specs/2026-06-19-plc-python-converter-design.md`](docs/superpowers/specs/2026-06-19-plc-python-converter-design.md).
 
