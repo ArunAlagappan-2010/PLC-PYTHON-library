@@ -18,6 +18,8 @@ from .backends import fbd as _fbd_be      # noqa: F401
 from .backends import sfc as _sfc_be      # noqa: F401
 from .backends.vendors import scl as _scl_be   # noqa: F401
 from .backends.vendors import l5x as _l5x_be   # noqa: F401
+from .backends.vendors import codesys as _cds_be   # noqa: F401
+from .backends.vendors import twincat as _twc_be   # noqa: F401
 from . import plcopen as _plcopen              # noqa: F401  (registers both)
 
 
