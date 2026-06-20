@@ -105,6 +105,40 @@ def _emit_fb_class(fb: ir.FunctionBlockDef) -> list[str]:
     return lines
 
 
+def _emit_goto_scan(stmts: list[ir.Stmt], indent: int) -> list[str]:
+    """Execute a body containing Label/Jump as a program-counter machine."""
+    pad = "    " * indent
+    label_idx: dict[str, int] = {}
+    seq: list[ir.Stmt] = []
+    for s in stmts:
+        if isinstance(s, ir.Label):
+            label_idx[s.name] = len(seq)
+        else:
+            seq.append(s)
+    lines = [f"{pad}_pc = 0",
+             f"{pad}_LBL = {label_idx!r}",
+             f"{pad}while _pc < {len(seq)}:"]
+    ip = pad + "    "
+    bp = ip + "    "
+    for i, s in enumerate(seq):
+        lines.append(f"{ip}if _pc == {i}:")
+        if isinstance(s, ir.Assign):
+            lines.append(f"{bp}self.{s.target} = {_expr(s.value)}")
+            lines.append(f"{bp}_pc += 1")
+        elif isinstance(s, ir.Jump):
+            if s.cond is None:
+                lines.append(f"{bp}_pc = _LBL[{s.target!r}]")
+            else:
+                test = _expr(s.cond)
+                if s.negate:
+                    test = f"(not {test})"
+                lines.append(f"{bp}_pc = _LBL[{s.target!r}] if {test} else _pc + 1")
+        else:
+            lines.append(f"{bp}_pc += 1  # unsupported in goto mode")
+        lines.append(f"{ip}    continue")
+    return lines
+
+
 def emit_python(program: ir.Program) -> str:
     lines: list[str] = []
     timer_types = sorted({fb.fb_type for fb in program.fbs if fb.fb_type in _TIMER_TYPES})
@@ -146,7 +180,10 @@ def emit_python(program: ir.Program) -> str:
         lines.append("        pass")
     lines.append("")
     lines.append("    def scan(self):")
-    body = _stmts(program.body, 2, timer_names)
+    if any(isinstance(s, (ir.Label, ir.Jump)) for s in program.body):
+        body = _emit_goto_scan(program.body, 2)
+    else:
+        body = _stmts(program.body, 2, timer_names)
     lines.extend(body or ["        pass"])
     return "\n".join(lines) + "\n"
 

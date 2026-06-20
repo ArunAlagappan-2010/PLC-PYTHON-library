@@ -17,6 +17,7 @@ from .. import ir
 from ..registry import ParseResult, register_frontend
 from ..diagnostics import Diagnostic, Severity
 from ._common import TYPES as _TYPES, SCOPE as _SCOPE
+from ._il_cfg import raise_structured
 _BINOP = {"ADD": "+", "SUB": "-", "MUL": "*", "DIV": "/", "AND": "and", "OR": "or",
           "GT": ">", "GE": ">=", "LT": "<", "LE": "<=", "EQ": "=", "NE": "<>"}
 
@@ -53,6 +54,11 @@ def parse_il(text: str) -> ParseResult:
         idx += 1
         if not raw:
             continue
+        # label line:  name:
+        if raw.endswith(":") and raw[:-1].strip().isidentifier():
+            body.append(ir.Label(raw[:-1].strip()))
+            continue
+
         head = raw.split()
         kw = head[0].upper()
 
@@ -97,6 +103,12 @@ def parse_il(text: str) -> ParseResult:
         elif op == "NOT":
             if cr is not None:
                 cr = ir.UnaryOp("not", cr)
+        elif op == "JMP":
+            body.append(ir.Jump(arg, None, False))
+        elif op == "JMPC":
+            body.append(ir.Jump(arg, cr, False))
+        elif op == "JMPCN":
+            body.append(ir.Jump(arg, cr, True))
         elif op in _BINOP:
             rhs = _operand(arg, diagnostics, idx)
             if cr is None or rhs is None:
@@ -109,6 +121,7 @@ def parse_il(text: str) -> ParseResult:
                 f"unsupported IL instruction {op!r}", Severity.UNSUPPORTED,
                 line=idx, code="IL"))
 
+    body = raise_structured(body)
     program = ir.Program(name, vars_, body)
     return ParseResult(program, diagnostics)
 

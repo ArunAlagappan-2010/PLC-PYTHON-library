@@ -51,21 +51,29 @@ END_PROGRAM
     assert "ST y" in il
 
 
-def test_il_control_flow_is_marked_unsupported_in_backend():
+def test_il_if_lowers_to_jumps_for_lowered_to_comment():
     st = """PROGRAM P
 VAR_OUTPUT
     y : INT;
 END_VAR
 VAR_INPUT
     x : INT;
+    n : INT;
+    i : INT;
 END_VAR
     IF x > 0 THEN
         y := 1;
     END_IF;
+    FOR i := 0 TO n DO
+        y := i;
+    END_FOR;
 END_PROGRAM
 """
     il = plcpy.convert(st, "st", "il").code
-    assert "unsupported in IL: IF" in il
+    # IF now lowers to a conditional jump...
+    assert "JMPCN" in il
+    # ...but FOR is still outside the IL control-flow subset
+    assert "unsupported in IL: FOR" in il
 
 
 def test_languages_includes_il():

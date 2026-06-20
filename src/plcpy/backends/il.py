@@ -7,6 +7,7 @@ expressed in linear IL (nested right operands, IF/WHILE control flow) emit an
 `(* unsupported ... *)` comment rather than silently dropping.
 """
 from __future__ import annotations
+import itertools
 from .. import ir
 from ..registry import register_backend
 
@@ -48,16 +49,39 @@ def _emit_expr(e: ir.Expr, indent: str) -> list[str] | None:
     return None
 
 
-def _emit_stmt(s: ir.Stmt, indent: str) -> list[str]:
+def _emit_stmt(s: ir.Stmt, indent: str, labels) -> list[str]:
     if isinstance(s, ir.Assign):
         expr_il = _emit_expr(s.value, indent)
         if expr_il is None:
             return [f"{indent}(* unsupported expression for {s.target} *)"]
         return expr_il + [f"{indent}ST {s.target}"]
     if isinstance(s, ir.If):
-        return [f"{indent}(* unsupported in IL: IF statement *)"]
+        if s.elifs or s.orelse:
+            return [f"{indent}(* IL export supports IF-THEN only; ELSIF/ELSE dropped *)"]
+        cond_il = _emit_expr(s.cond, indent)
+        if cond_il is None:
+            return [f"{indent}(* unsupported IF condition *)"]
+        end = f"L{next(labels)}"
+        out = list(cond_il)
+        out.append(f"{indent}JMPCN {end}")
+        for inner in s.then:
+            out += _emit_stmt(inner, indent, labels)
+        out.append(f"{end}:")
+        return out
     if isinstance(s, ir.While):
-        return [f"{indent}(* unsupported in IL: WHILE statement *)"]
+        cond_il = _emit_expr(s.cond, indent)
+        if cond_il is None:
+            return [f"{indent}(* unsupported WHILE condition *)"]
+        guard = f"L{next(labels)}"
+        end = f"L{next(labels)}"
+        out = [f"{guard}:"]
+        out += cond_il
+        out.append(f"{indent}JMPCN {end}")
+        for inner in s.body:
+            out += _emit_stmt(inner, indent, labels)
+        out.append(f"{indent}JMP {guard}")
+        out.append(f"{end}:")
+        return out
     if isinstance(s, ir.For):
         return [f"{indent}(* unsupported in IL: FOR statement *)"]
     if isinstance(s, ir.Case):
@@ -66,6 +90,7 @@ def _emit_stmt(s: ir.Stmt, indent: str) -> list[str]:
 
 
 def emit_il(program: ir.Program) -> str:
+    labels = itertools.count()
     lines = [f"PROGRAM {program.name}"]
     for scope in (ir.VarScope.INPUT, ir.VarScope.OUTPUT, ir.VarScope.LOCAL):
         decls = [v for v in program.vars if v.scope is scope]
@@ -76,7 +101,7 @@ def emit_il(program: ir.Program) -> str:
             lines.append(f"    {v.name} : {v.type.value};")
         lines.append("END_VAR")
     for s in program.body:
-        lines.extend(_emit_stmt(s, "    "))
+        lines.extend(_emit_stmt(s, "    ", labels))
     lines.append("END_PROGRAM")
     return "\n".join(lines) + "\n"
 

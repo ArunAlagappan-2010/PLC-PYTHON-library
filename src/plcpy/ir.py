@@ -116,7 +116,21 @@ class MemberAssign:
     value: "Expr"
 
 
-Stmt = Union[Assign, If, While, For, Case, FBCall, IndexAssign, MemberAssign]
+@dataclass
+class Label:
+    """IL jump target."""
+    name: str
+
+
+@dataclass
+class Jump:
+    """IL jump. Unconditional if cond is None; JMPC if cond set; JMPCN if negate."""
+    target: str
+    cond: "Expr | None" = None
+    negate: bool = False
+
+
+Stmt = Union[Assign, If, While, For, Case, FBCall, IndexAssign, MemberAssign, Label, Jump]
 
 
 @dataclass
