@@ -18,7 +18,7 @@ language without writing N×M converters — just N parsers and M emitters.
 python -m pip install -e ".[test]"
 ```
 
-Requires Python 3.11+.
+Requires Python 3.11+
 
 ## Usage
 
