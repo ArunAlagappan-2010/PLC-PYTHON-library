@@ -2,7 +2,7 @@
   "name": "plcpy-vscode",
   "displayName": "plcpy — PLC ↔ Python",
   "description": "Convert between Python and IEC 61131-3 PLC languages, with synchronized side-by-side views and an execution-flow visualizer.",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "publisher": "plcpy",
   "license": "MIT",
   "engines": { "vscode": "^1.75.0" },
@@ -28,13 +28,32 @@
     "commands": [
       {
         "command": "plcpy.visualize",
-        "title": "plcpy: Visualize (side-by-side + flow diagram)"
+        "title": "plcpy: Open Preview (side-by-side + flow diagram)",
+        "category": "plcpy",
+        "icon": "$(open-preview)"
       },
       {
         "command": "plcpy.convert",
-        "title": "plcpy: Convert to another language"
+        "title": "plcpy: Convert to another language",
+        "category": "plcpy"
       }
     ],
+    "menus": {
+      "editor/title": [
+        {
+          "command": "plcpy.visualize",
+          "when": "resourceExtname == .st || resourceExtname == .il || resourceExtname == .ld || resourceExtname == .fbd || resourceExtname == .sfc",
+          "group": "navigation"
+        }
+      ],
+      "editor/context": [
+        {
+          "command": "plcpy.visualize",
+          "when": "resourceExtname == .st || resourceExtname == .il || resourceExtname == .ld || resourceExtname == .fbd || resourceExtname == .sfc",
+          "group": "navigation"
+        }
+      ]
+    },
     "configuration": {
       "title": "plcpy",
       "properties": {
