@@ -2,28 +2,82 @@
   "name": "plcpy-vscode",
   "displayName": "plcpy — PLC ↔ Python",
   "description": "Convert between Python and IEC 61131-3 PLC languages, with synchronized side-by-side views and an execution-flow visualizer.",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "publisher": "plcpy",
   "license": "MIT",
-  "engines": { "vscode": "^1.75.0" },
-  "categories": ["Programming Languages", "Visualization"],
-  "keywords": ["plc", "iec 61131-3", "structured text", "ladder", "sfc", "python"],
+  "engines": {
+    "vscode": "^1.75.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Visualization"
+  ],
+  "keywords": [
+    "plc",
+    "iec 61131-3",
+    "structured text",
+    "ladder",
+    "sfc",
+    "python"
+  ],
   "repository": {
     "type": "git",
     "url": "https://github.com/ArunAlagappan-2010/PLC-PYTHON-library.git",
     "directory": "vscode-extension"
   },
   "homepage": "https://github.com/ArunAlagappan-2010/PLC-PYTHON-library#readme",
-  "bugs": { "url": "https://github.com/ArunAlagappan-2010/PLC-PYTHON-library/issues" },
+  "bugs": {
+    "url": "https://github.com/ArunAlagappan-2010/PLC-PYTHON-library/issues"
+  },
   "activationEvents": [],
   "main": "./out/extension.js",
   "contributes": {
     "languages": [
-      { "id": "st", "aliases": ["Structured Text"], "extensions": [".st"] },
-      { "id": "il", "aliases": ["Instruction List"], "extensions": [".il"] },
-      { "id": "ld", "aliases": ["Ladder Diagram"], "extensions": [".ld"] },
-      { "id": "fbd", "aliases": ["Function Block Diagram"], "extensions": [".fbd"] },
-      { "id": "sfc", "aliases": ["Sequential Function Chart"], "extensions": [".sfc"] }
+      {
+        "id": "st",
+        "aliases": [
+          "Structured Text"
+        ],
+        "extensions": [
+          ".st"
+        ]
+      },
+      {
+        "id": "il",
+        "aliases": [
+          "Instruction List"
+        ],
+        "extensions": [
+          ".il"
+        ]
+      },
+      {
+        "id": "ld",
+        "aliases": [
+          "Ladder Diagram"
+        ],
+        "extensions": [
+          ".ld"
+        ]
+      },
+      {
+        "id": "fbd",
+        "aliases": [
+          "Function Block Diagram"
+        ],
+        "extensions": [
+          ".fbd"
+        ]
+      },
+      {
+        "id": "sfc",
+        "aliases": [
+          "Sequential Function Chart"
+        ],
+        "extensions": [
+          ".sfc"
+        ]
+      }
     ],
     "commands": [
       {
@@ -65,7 +119,16 @@
         "plcpy.defaultTarget": {
           "type": "string",
           "default": "python",
-          "enum": ["python", "st", "il", "ld", "fbd", "sfc", "scl", "l5x"],
+          "enum": [
+            "python",
+            "st",
+            "il",
+            "ld",
+            "fbd",
+            "sfc",
+            "scl",
+            "l5x"
+          ],
           "description": "Default target language for the side-by-side pane."
         }
       }
@@ -73,7 +136,9 @@
   },
   "scripts": {
     "compile": "tsc -p ./",
-    "watch": "tsc -watch -p ./"
+    "watch": "tsc -watch -p ./",
+    "bundle": "esbuild src/extension.ts --bundle --outfile=out/extension.js --external:vscode --format=cjs --platform=node",
+    "vscode:prepublish": "npm run bundle"
   },
   "dependencies": {
     "vscode-languageclient": "^8.1.0"
@@ -81,6 +146,7 @@
   "devDependencies": {
     "@types/node": "^18.0.0",
     "@types/vscode": "^1.75.0",
+    "esbuild": "^0.28.1",
     "typescript": "^5.0.0"
   }
 }
